@@ -1,4 +1,3 @@
-
 library ieee;
 
 use ieee.std_logic_1164.all;
@@ -74,6 +73,8 @@ begin
 		variable payload_length_vector : std_logic_vector(15 downto 0) := (others => '0');
 	begin
 		if rising_edge(byte_clock) then
+			receiver_go_idle_on_next <= '0';
+		
 			case current_frame_state is
 			when IDLE =>
 				counter := 0;
@@ -121,7 +122,5 @@ begin
 			end case;
 		end if;
 	end process;
-	
-
 end architecture;
 

@@ -1,0 +1,5 @@
+mac_run_msim_rtl_vhdl.do
+modelsim.ini
+msim_transcript
+rtl_work/
+vsim.wlf
