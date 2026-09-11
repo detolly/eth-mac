@@ -26,8 +26,8 @@ entity fpga is
 end entity;
 
 architecture rtl of fpga is
-	signal a, c : std_logic := '0';
-	signal b : std_logic_vector(7 downto 0) := (others => '0');
+    signal a, c : std_logic := '0';
+    signal b : std_logic_vector(7 downto 0) := (others => '0');
 begin
 
     ENET0_RST_N <= SW(1);
@@ -43,8 +43,8 @@ begin
                   -- RX_COL  : in  std_logic;
                   -- RX_CRS  : in  std_logic;
                   RX_DATA => ENET0_RX_DATA,
-                  RX_DV => 	 ENET0_RX_DV,
-                  RX_ER => 	 ENET0_RX_ER,
+                  RX_DV   => ENET0_RX_DV,
+                  RX_ER   => ENET0_RX_ER,
                  
                   -- TX_CLK  : in  std_logic;
                   -- TX_DATA : out std_logic_vector(3 downto 0);

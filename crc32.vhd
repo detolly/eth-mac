@@ -10,8 +10,8 @@ signal crc_32_table : table := (0, 1996959894, 3993919788, 2567524794, 124634137
 
 -- function crc32(crc : in integer) return integer is
 -- begin
-	
---	 return crc;
+    
+--     return crc;
 
 -- end function;
 
