@@ -1,0 +1,5 @@
+*.bak
+serv_req_info.txt
+incremental_db/
+db/
+output_files/
