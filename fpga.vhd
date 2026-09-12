@@ -27,16 +27,30 @@ entity fpga is
 end entity;
 
 architecture rtl of fpga is
-    signal a, c : std_logic;
-    signal b : std_logic_vector(7 downto 0) := (others => '0');
+    signal read_clk : std_logic := '0';
+    signal read_available : std_logic := '0';
+    signal read_enable : std_logic := '0';
+    signal read_data : std_logic_vector(7 downto 0) := (others => '0');
+    
+    signal packet_ready : std_logic := '0';
+    signal packet_done : std_logic := '0';
+    signal packet_address : std_logic_vector(7 downto 0) := (others => '0');
+    signal packet_data : std_logic_vector(7 downto 0) := (others => '0');
 begin
-
-    a <= '0';
-    b <= (others => '0');
-    c <= '0';
 
     ENET0_RST_N <= SW(0);
     LEDR(0) <= SW(0);
+    
+    mux: entity work.packet_mux
+        port map(read_clk        => read_clk,
+                 read_en         => read_enable,
+                 read_data       => read_data,
+                 read_available  => read_available,
+
+                 packet_ready    => packet_ready,
+                 packet_address  => packet_address,
+                 packet_data     => packet_data,
+                 packet_done     => packet_done);
 
     mac0: entity work.mac
         port map ( -- MDC     : out   std_logic;
@@ -56,8 +70,9 @@ begin
                   -- TX_EN   : out std_logic;
                   -- TX_ER   : out std_logic;
                  
-                 buffer_read_clk => a,
-                 buffer_read_data => b,
-                 buffer_read_en => c);
+                 buffer_read_clk => read_clk,
+                 buffer_read_data => read_data,
+                 buffer_read_en => read_enable,
+                 buffer_read_available => read_available);
 
 end architecture;

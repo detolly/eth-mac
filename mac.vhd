@@ -6,21 +6,21 @@ use ieee.numeric_std.all;
 entity mac is
     port(-- MDC     : out   std_logic;
          -- MDIO    : inout std_logic;
-         
+
          -- RST_N   : out  std_logic;
-         
+
          -- RX_COL  : in  std_logic;
          -- RX_CRS  : in  std_logic;
          RX_CLK  : in  std_logic;
          RX_DATA : in  std_logic_vector(3 downto 0);
          RX_DV   : in  std_logic;
          RX_ER   : in  std_logic;
-         
+
          -- TX_CLK  : in  std_logic;
          -- TX_DATA : out std_logic_vector(3 downto 0);
          -- TX_EN   : out std_logic;
          -- TX_ER   : out std_logic;
-         
+
          buffer_read_clk          : in  std_logic;
          buffer_read_data         : out std_logic_vector(7 downto 0);
          buffer_read_en           : in  std_logic;
