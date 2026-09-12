@@ -16,8 +16,8 @@ entity mac_receiver is
          buffer_read_en           : in  std_logic;
          buffer_read_available    : out std_logic;
 
-         mac_address            : in std_logic_vector(47 downto 0);
-         connected_mac_address  : in std_logic_vector(47 downto 0));
+         mac_address            : in  std_logic_vector(47 downto 0);
+         connected_mac_address  : out std_logic_vector(47 downto 0));
 end entity;
 
 architecture rtl of mac_receiver is
@@ -40,6 +40,7 @@ architecture rtl of mac_receiver is
 
     signal write_discard : std_logic := '0';
 begin
+    connected_mac_address <= (others => '0');
     write_discard <= '1' when (drop_frame = '1' or frame_corrupt = '1') else '0';
 
     rx_ram: entity work.async_read_write_ring_buffer
@@ -89,7 +90,7 @@ begin
             end case;
         end if;
     end process;
-    
+
     byte_processor: process(byte_clock)
         variable counter : integer range 0 to 2**16-1 := 0;
         variable payload_length : integer range 0 to 2**16-1 := 0;
@@ -97,7 +98,7 @@ begin
     begin
         if rising_edge(byte_clock) then
             drop_frame <= '0';
-            if payload_length >= 1500 then drop_frame <= '1'; end if;
+            if payload_length > 1500 then drop_frame <= '1'; end if;
             
             receiver_go_idle_on_next <= '0';
 
@@ -106,7 +107,6 @@ begin
                 counter := 0;
                 payload_length := 0;
                 payload_length_vector := (others => '0');
-                
                 if start_parsing_frame = '1' then
                     current_frame_state <= MAC_DESTINATION;
                 end if;

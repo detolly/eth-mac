@@ -4,34 +4,39 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity fpga is
-    port(SW            : in  std_logic_vector(2 downto 0);
-         LEDR          : out std_logic_vector(2 downto 0);
+    port(SW            : in  std_logic_vector(0 downto 0);
+         LEDR          : out std_logic_vector(0 downto 0);
 
-         ENET0_MDC     : out   std_logic;
-         ENET0_MDIO    : inout std_logic;
+         -- ENET0_MDC     : out   std_logic;
+         -- ENET0_MDIO    : inout std_logic;
 
          ENET0_RST_N   : out std_logic;
 
          ENET0_RX_CLK  : in  std_logic;
-         ENET0_RX_COL  : in  std_logic;
-         ENET0_RX_CRS  : in  std_logic;
+         -- ENET0_RX_COL  : in  std_logic;
+         -- ENET0_RX_CRS  : in  std_logic;
          ENET0_RX_DATA : in  std_logic_vector(3 downto 0);
          ENET0_RX_DV   : in  std_logic;
-         ENET0_RX_ER   : in  std_logic;
+         ENET0_RX_ER   : in  std_logic
 
-         ENET0_TX_CLK  : in  std_logic;
-         ENET0_TX_DATA : out std_logic_vector(3 downto 0);
-         ENET0_TX_EN   : out std_logic;
-         ENET0_TX_ER   : out std_logic);
+         -- ENET0_TX_CLK  : in  std_logic;
+         -- ENET0_TX_DATA : out std_logic_vector(3 downto 0);
+         -- ENET0_TX_EN   : out std_logic;
+         -- ENET0_TX_ER   : out std_logic
+         );
 end entity;
 
 architecture rtl of fpga is
-    signal a, c : std_logic := '0';
+    signal a, c : std_logic;
     signal b : std_logic_vector(7 downto 0) := (others => '0');
 begin
 
-    ENET0_RST_N <= SW(1);
-    LEDR(1) <= SW(1);
+    a <= '0';
+    b <= (others => '0');
+    c <= '0';
+
+    ENET0_RST_N <= SW(0);
+    LEDR(0) <= SW(0);
 
     mac0: entity work.mac
         port map ( -- MDC     : out   std_logic;

@@ -28,8 +28,8 @@ entity mac is
 end entity;
 
 architecture rtl of mac is
-    signal mac_address           : std_logic_vector(47 downto 0) := x"112233445566";
-    signal connected_mac_address : std_logic_vector(47 downto 0) := (others => '0');
+    constant mac_address           : std_logic_vector(47 downto 0) := x"112233445566";
+    signal connected_mac_address   : std_logic_vector(47 downto 0);
 begin
     receiver: entity work.mac_receiver
         port map(RX_CLK                => RX_CLK,
