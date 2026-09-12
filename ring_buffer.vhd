@@ -15,7 +15,7 @@ entity async_read_write_ring_buffer is
          write_clk         : in std_logic;
          write_en          : in std_logic;
          write_data        : in std_logic_vector(DATA_WIDTH - 1 downto 0);
-         write_corrupt     : in std_logic);
+         write_discard     : in std_logic);
 end entity;
 
 architecture rtl of async_read_write_ring_buffer is
@@ -57,7 +57,7 @@ begin
     begin
         if rising_edge(write_clk) then
             if write_en = '0' and is_writing = '1' then
-                if write_corrupt = '1' then
+                if write_discard = '1' then
                     write_addr <= backup_write_addr;
                 else
                     last_good_write_addr <= write_addr;

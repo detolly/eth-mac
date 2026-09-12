@@ -29,14 +29,19 @@ architecture rtl of mac_receiver is
     
     signal receiver_go_idle_on_next : std_logic := '0';
     signal start_parsing_frame : std_logic := '0';
-    
+
     -- ram related
     signal byte_clock : std_logic := '0';
     signal current_byte : std_logic_vector(7 downto 0) := (others => '0');
 
-    signal write_enable  : std_logic;
-    signal write_corrupt : std_logic := '0';
+    signal write_enable  : std_logic := '0';
+    signal frame_corrupt : std_logic := '0';
+    signal drop_frame    : std_logic := '0';
+
+    signal write_discard : std_logic := '0';
 begin
+    write_discard <= '1' when (drop_frame = '1' or frame_corrupt = '1') else '0';
+
     rx_ram: entity work.async_read_write_ring_buffer
         generic map(DATA_WIDTH => 8,
                     NUM_DATA   => 2**12)
@@ -48,13 +53,13 @@ begin
                   write_clk      => byte_clock,
                   write_en       => write_enable,
                   write_data     => current_byte,
-                  write_corrupt  => write_corrupt);
-    
+                  write_discard  => write_discard);
+
     receiver: process (RX_CLK)
     begin
         if rising_edge(RX_CLK) then
             write_enable <= '0';
-            write_corrupt <= RX_ER or not RX_DV;
+            frame_corrupt <= RX_ER or not RX_DV;
             start_parsing_frame <= '0';
             
             case current_receive_state is
@@ -91,8 +96,11 @@ begin
         variable payload_length_vector : std_logic_vector(15 downto 0) := (others => '0');
     begin
         if rising_edge(byte_clock) then
+            drop_frame <= '0';
+            if payload_length >= 1500 then drop_frame <= '1'; end if;
+            
             receiver_go_idle_on_next <= '0';
-        
+
             case current_frame_state is
             when IDLE =>
                 counter := 0;

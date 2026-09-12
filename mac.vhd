@@ -27,7 +27,7 @@ entity mac is
          buffer_read_available    : out std_logic);
 end entity;
 
-architecture rtl of mac is	
+architecture rtl of mac is
     signal mac_address           : std_logic_vector(47 downto 0) := x"112233445566";
     signal connected_mac_address : std_logic_vector(47 downto 0) := (others => '0');
 begin
