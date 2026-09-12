@@ -10,35 +10,50 @@ entity mac_receiver is
          RX_DATA : in  std_logic_vector(3 downto 0);
          RX_DV   : in  std_logic;
          RX_ER   : in  std_logic;
-         
-         write_clk     : out std_logic;
-         write_en      : out std_logic;
-         write_data    : out std_logic_vector(7 downto 0);
-         write_corrupt : out std_logic;
-         
-         mac_address   : in  std_logic_vector(47 downto 0));
+
+         buffer_read_clk          : in  std_logic;
+         buffer_read_data         : out std_logic_vector(7 downto 0);
+         buffer_read_en           : in  std_logic;
+         buffer_read_available    : out std_logic;
+
+         mac_address            : in std_logic_vector(47 downto 0);
+         connected_mac_address  : in std_logic_vector(47 downto 0));
 end entity;
 
-architecture rtl of mac_receiver is    
+architecture rtl of mac_receiver is
+    -- mac / frame state
     type receive_state is (IDLE, PREAMBLE_SFD, FIRST, SECOND);
-    signal current_receive_state : receive_state := IDLE;
-    
     type frame_state is (IDLE, MAC_DESTINATION, MAC_SOURCE, LEN, PAYLOAD, CRC);
+    signal current_receive_state : receive_state := IDLE;
     signal current_frame_state : frame_state := IDLE;
-    
-    signal byte_clock : std_logic := '0';
-    signal current_byte : std_logic_vector(7 downto 0) := (others => '0');
     
     signal receiver_go_idle_on_next : std_logic := '0';
     signal start_parsing_frame : std_logic := '0';
+    
+    -- ram related
+    signal byte_clock : std_logic := '0';
+    signal current_byte : std_logic_vector(7 downto 0) := (others => '0');
+
+    signal write_enable  : std_logic;
+    signal write_corrupt : std_logic := '0';
 begin
-    write_data <= current_byte;
-    write_clk <= byte_clock;
+    rx_ram: entity work.async_read_write_ring_buffer
+        generic map(DATA_WIDTH => 8,
+                    NUM_DATA   => 2**12)
+        port map (read_clk       => buffer_read_clk,
+                  read_en        => buffer_read_en,
+                  read_data      => buffer_read_data,
+                  read_available => buffer_read_available,
+
+                  write_clk      => byte_clock,
+                  write_en       => write_enable,
+                  write_data     => current_byte,
+                  write_corrupt  => write_corrupt);
     
     receiver: process (RX_CLK)
     begin
         if rising_edge(RX_CLK) then
-            write_en <= '0';
+            write_enable <= '0';
             write_corrupt <= RX_ER or not RX_DV;
             start_parsing_frame <= '0';
             
@@ -49,13 +64,12 @@ begin
                 end if;
             when PREAMBLE_SFD =>
                 if RX_DATA = "1011" then
-                    write_en <= '1';
                     start_parsing_frame <= '1';
                     current_receive_state <= FIRST;
                 end if;
             when FIRST =>
                 byte_clock <= '0';
-                write_en <= '1';
+                write_enable <= '1';
                 if receiver_go_idle_on_next = '1' then
                     current_receive_state <= IDLE;
                 else
@@ -63,7 +77,7 @@ begin
                     current_receive_state <= SECOND;
                 end if;
             when SECOND =>
-                write_en <= '1';
+                write_enable <= '1';
                 current_byte(3 downto 0) <= RX_DATA;
                 current_receive_state <= FIRST;
                 byte_clock <= '1';

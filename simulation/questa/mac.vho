@@ -17,7 +17,7 @@
 -- PROGRAM "Quartus Prime"
 -- VERSION "Version 25.1std.0 Build 1129 10/21/2025 SC Lite Edition"
 
--- DATE "09/11/2026 14:21:31"
+-- DATE "09/12/2026 01:00:05"
 
 -- 
 -- Device: Altera EP4CE115F29C7 Package FBGA780
@@ -78,10 +78,10 @@ USE IEEE.STD_LOGIC_1164.ALL;
 ENTITY 	fpga IS
     PORT (
 	SW : IN std_logic_vector(2 DOWNTO 0);
-	LEDR : BUFFER std_logic_vector(2 DOWNTO 0);
-	ENET0_MDC : BUFFER std_logic;
-	ENET0_MDIO : BUFFER std_logic;
-	ENET0_RST_N : BUFFER std_logic;
+	LEDR : OUT std_logic_vector(2 DOWNTO 0);
+	ENET0_MDC : OUT std_logic;
+	ENET0_MDIO : INOUT std_logic;
+	ENET0_RST_N : OUT std_logic;
 	ENET0_RX_CLK : IN std_logic;
 	ENET0_RX_COL : IN std_logic;
 	ENET0_RX_CRS : IN std_logic;
@@ -89,9 +89,9 @@ ENTITY 	fpga IS
 	ENET0_RX_DV : IN std_logic;
 	ENET0_RX_ER : IN std_logic;
 	ENET0_TX_CLK : IN std_logic;
-	ENET0_TX_DATA : BUFFER std_logic_vector(3 DOWNTO 0);
-	ENET0_TX_EN : BUFFER std_logic;
-	ENET0_TX_ER : BUFFER std_logic
+	ENET0_TX_DATA : OUT std_logic_vector(3 DOWNTO 0);
+	ENET0_TX_EN : OUT std_logic;
+	ENET0_TX_ER : OUT std_logic
 	);
 END fpga;
 
@@ -113,11 +113,11 @@ END fpga;
 -- ENET0_TX_DATA[3]	=>  Location: PIN_B19,	 I/O Standard: 2.5 V,	 Current Strength: Default
 -- ENET0_TX_EN	=>  Location: PIN_A18,	 I/O Standard: 2.5 V,	 Current Strength: Default
 -- ENET0_TX_ER	=>  Location: PIN_B18,	 I/O Standard: 2.5 V,	 Current Strength: Default
+-- ENET0_RX_DV	=>  Location: PIN_C17,	 I/O Standard: 2.5 V,	 Current Strength: Default
 -- ENET0_RX_DATA[0]	=>  Location: PIN_C16,	 I/O Standard: 2.5 V,	 Current Strength: Default
 -- ENET0_RX_DATA[1]	=>  Location: PIN_D16,	 I/O Standard: 2.5 V,	 Current Strength: Default
 -- ENET0_RX_DATA[2]	=>  Location: PIN_D17,	 I/O Standard: 2.5 V,	 Current Strength: Default
 -- ENET0_RX_DATA[3]	=>  Location: PIN_C15,	 I/O Standard: 2.5 V,	 Current Strength: Default
--- ENET0_RX_DV	=>  Location: PIN_C17,	 I/O Standard: 2.5 V,	 Current Strength: Default
 -- ENET0_RX_CLK	=>  Location: PIN_A15,	 I/O Standard: 2.5 V,	 Current Strength: Default
 -- ENET0_MDIO	=>  Location: PIN_B21,	 I/O Standard: 2.5 V,	 Current Strength: Default
 -- SW[1]	=>  Location: PIN_AC28,	 I/O Standard: 2.5 V,	 Current Strength: Default
@@ -136,7 +136,6 @@ SIGNAL ww_devpor : std_logic;
 SIGNAL ww_SW : std_logic_vector(2 DOWNTO 0);
 SIGNAL ww_LEDR : std_logic_vector(2 DOWNTO 0);
 SIGNAL ww_ENET0_MDC : std_logic;
-SIGNAL ww_ENET0_MDIO : std_logic;
 SIGNAL ww_ENET0_RST_N : std_logic;
 SIGNAL ww_ENET0_RX_CLK : std_logic;
 SIGNAL ww_ENET0_RX_COL : std_logic;
@@ -154,11 +153,11 @@ SIGNAL \ENET0_RX_COL~input_o\ : std_logic;
 SIGNAL \ENET0_RX_CRS~input_o\ : std_logic;
 SIGNAL \ENET0_RX_ER~input_o\ : std_logic;
 SIGNAL \ENET0_TX_CLK~input_o\ : std_logic;
+SIGNAL \ENET0_RX_DV~input_o\ : std_logic;
 SIGNAL \ENET0_RX_DATA[0]~input_o\ : std_logic;
 SIGNAL \ENET0_RX_DATA[1]~input_o\ : std_logic;
 SIGNAL \ENET0_RX_DATA[2]~input_o\ : std_logic;
 SIGNAL \ENET0_RX_DATA[3]~input_o\ : std_logic;
-SIGNAL \ENET0_RX_DV~input_o\ : std_logic;
 SIGNAL \ENET0_RX_CLK~input_o\ : std_logic;
 SIGNAL \ENET0_MDIO~input_o\ : std_logic;
 SIGNAL \ENET0_MDIO~output_o\ : std_logic;
@@ -187,7 +186,6 @@ BEGIN
 ww_SW <= SW;
 LEDR <= ww_LEDR;
 ENET0_MDC <= ww_ENET0_MDC;
-ENET0_MDIO <= ww_ENET0_MDIO;
 ENET0_RST_N <= ww_ENET0_RST_N;
 ww_ENET0_RX_CLK <= ENET0_RX_CLK;
 ww_ENET0_RX_COL <= ENET0_RX_COL;
@@ -429,6 +427,17 @@ PORT MAP (
 	i => ww_ENET0_TX_CLK,
 	o => \ENET0_TX_CLK~input_o\);
 
+-- Location: IOIBUF_X81_Y73_N1
+\ENET0_RX_DV~input\ : cycloneive_io_ibuf
+-- pragma translate_off
+GENERIC MAP (
+	bus_hold => "false",
+	simulate_z_as => "z")
+-- pragma translate_on
+PORT MAP (
+	i => ww_ENET0_RX_DV,
+	o => \ENET0_RX_DV~input_o\);
+
 -- Location: IOIBUF_X62_Y73_N15
 \ENET0_RX_DATA[0]~input\ : cycloneive_io_ibuf
 -- pragma translate_off
@@ -473,17 +482,6 @@ PORT MAP (
 	i => ww_ENET0_RX_DATA(3),
 	o => \ENET0_RX_DATA[3]~input_o\);
 
--- Location: IOIBUF_X81_Y73_N1
-\ENET0_RX_DV~input\ : cycloneive_io_ibuf
--- pragma translate_off
-GENERIC MAP (
-	bus_hold => "false",
-	simulate_z_as => "z")
--- pragma translate_on
-PORT MAP (
-	i => ww_ENET0_RX_DV,
-	o => \ENET0_RX_DV~input_o\);
-
 -- Location: IOIBUF_X56_Y73_N1
 \ENET0_RX_CLK~input\ : cycloneive_io_ibuf
 -- pragma translate_off
@@ -503,7 +501,7 @@ GENERIC MAP (
 	simulate_z_as => "z")
 -- pragma translate_on
 PORT MAP (
-	i => ww_ENET0_MDIO,
+	i => ENET0_MDIO,
 	o => \ENET0_MDIO~input_o\);
 
 ww_LEDR(0) <= \LEDR[0]~output_o\;
@@ -528,7 +526,7 @@ ww_ENET0_TX_EN <= \ENET0_TX_EN~output_o\;
 
 ww_ENET0_TX_ER <= \ENET0_TX_ER~output_o\;
 
-ww_ENET0_MDIO <= \ENET0_MDIO~output_o\;
+ENET0_MDIO <= \ENET0_MDIO~output_o\;
 END structure;
 
 

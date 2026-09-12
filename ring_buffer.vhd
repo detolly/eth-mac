@@ -6,12 +6,12 @@ use ieee.std_logic_1164.all;
 entity async_read_write_ring_buffer is
     generic(DATA_WIDTH : positive;
             NUM_DATA   : positive);
-            
+
     port(read_clk          : in  std_logic;
          read_en           : in  std_logic;
          read_data         : out std_logic_vector(DATA_WIDTH - 1 downto 0);
          read_available    : out std_logic;
-         
+
          write_clk         : in std_logic;
          write_en          : in std_logic;
          write_data        : in std_logic_vector(DATA_WIDTH - 1 downto 0);
@@ -22,14 +22,14 @@ architecture rtl of async_read_write_ring_buffer is
     type buffer_t is array (0 to NUM_DATA - 1) of std_logic_vector(DATA_WIDTH - 1 downto 0);
 
     signal ram : buffer_t := (others => (others => '0'));
-    
+
     signal read_addr  : integer range 0 to NUM_DATA - 1 := 0;
     signal write_addr : integer range 0 to NUM_DATA - 1 := 0;
     signal backup_write_addr : integer range 0 to NUM_DATA - 1 := 0;
     signal last_good_write_addr : integer range 0 to NUM_DATA - 1 := 0;
-    
+
     signal is_writing : std_logic := '0';
-    
+
     attribute ramstyle : string;
     attribute ramstyle of ram : signal is "M9K";
 begin
