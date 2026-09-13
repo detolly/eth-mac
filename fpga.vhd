@@ -6,6 +6,9 @@ use ieee.numeric_std.all;
 entity fpga is
     port(SW            : in  std_logic_vector(0 downto 0);
          LEDR          : out std_logic_vector(0 downto 0);
+         HEX0          : out std_logic_vector(6 downto 0);
+
+         -- CLOCK_50      : in std_logic;
 
          -- ENET0_MDC     : out   std_logic;
          -- ENET0_MDIO    : inout std_logic;
@@ -27,7 +30,7 @@ entity fpga is
 end entity;
 
 architecture rtl of fpga is
-    signal read_clk : std_logic := '0';
+    signal read_clock : std_logic := '0';
     signal read_available : std_logic := '0';
     signal read_enable : std_logic := '0';
     signal read_data : std_logic_vector(7 downto 0) := (others => '0');
@@ -41,8 +44,21 @@ begin
     ENET0_RST_N <= SW(0);
     LEDR(0) <= SW(0);
     
+    read_clock <= ENET0_RX_CLK; -- CLOCK_50
+    
+    ss: entity work.seven_segment
+        generic map(ADDRESS => "00000001")
+        port map(read_clock     => read_clock,
+   
+                 packet_address => packet_address,
+                 packet_ready   => packet_ready,
+                 packet_data    => packet_data,
+                 packet_done    => packet_done,
+                 
+                 hex            => HEX0);
+    
     mux: entity work.packet_mux
-        port map(read_clk        => read_clk,
+        port map(read_clk        => read_clock,
                  read_en         => read_enable,
                  read_data       => read_data,
                  read_available  => read_available,
@@ -70,7 +86,7 @@ begin
                   -- TX_EN   : out std_logic;
                   -- TX_ER   : out std_logic;
                  
-                 buffer_read_clk => read_clk,
+                 buffer_read_clk => read_clock,
                  buffer_read_data => read_data,
                  buffer_read_en => read_enable,
                  buffer_read_available => read_available);

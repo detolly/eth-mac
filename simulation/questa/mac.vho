@@ -17,7 +17,7 @@
 -- PROGRAM "Quartus Prime"
 -- VERSION "Version 25.1std.0 Build 1129 10/21/2025 SC Lite Edition"
 
--- DATE "09/12/2026 13:38:15"
+-- DATE "09/13/2026 14:19:44"
 
 -- 
 -- Device: Altera EP4CE115F29C7 Package FBGA780
@@ -79,6 +79,7 @@ ENTITY 	fpga IS
     PORT (
 	SW : IN std_logic_vector(0 DOWNTO 0);
 	LEDR : BUFFER std_logic_vector(0 DOWNTO 0);
+	HEX0 : BUFFER std_logic_vector(6 DOWNTO 0);
 	ENET0_RST_N : BUFFER std_logic;
 	ENET0_RX_CLK : IN std_logic;
 	ENET0_RX_DATA : IN std_logic_vector(3 DOWNTO 0);
@@ -89,14 +90,21 @@ END fpga;
 
 -- Design Ports Information
 -- LEDR[0]	=>  Location: PIN_G19,	 I/O Standard: 2.5 V,	 Current Strength: Default
+-- HEX0[0]	=>  Location: PIN_G18,	 I/O Standard: 2.5 V,	 Current Strength: Default
+-- HEX0[1]	=>  Location: PIN_F22,	 I/O Standard: 2.5 V,	 Current Strength: Default
+-- HEX0[2]	=>  Location: PIN_E17,	 I/O Standard: 2.5 V,	 Current Strength: Default
+-- HEX0[3]	=>  Location: PIN_L26,	 I/O Standard: 2.5 V,	 Current Strength: Default
+-- HEX0[4]	=>  Location: PIN_L25,	 I/O Standard: 2.5 V,	 Current Strength: Default
+-- HEX0[5]	=>  Location: PIN_J22,	 I/O Standard: 2.5 V,	 Current Strength: Default
+-- HEX0[6]	=>  Location: PIN_H22,	 I/O Standard: 2.5 V,	 Current Strength: Default
 -- ENET0_RST_N	=>  Location: PIN_C19,	 I/O Standard: 2.5 V,	 Current Strength: Default
--- ENET0_RX_ER	=>  Location: PIN_D18,	 I/O Standard: 2.5 V,	 Current Strength: Default
--- ENET0_RX_DV	=>  Location: PIN_C17,	 I/O Standard: 2.5 V,	 Current Strength: Default
+-- ENET0_RX_CLK	=>  Location: PIN_A15,	 I/O Standard: 2.5 V,	 Current Strength: Default
 -- ENET0_RX_DATA[0]	=>  Location: PIN_C16,	 I/O Standard: 2.5 V,	 Current Strength: Default
 -- ENET0_RX_DATA[1]	=>  Location: PIN_D16,	 I/O Standard: 2.5 V,	 Current Strength: Default
 -- ENET0_RX_DATA[2]	=>  Location: PIN_D17,	 I/O Standard: 2.5 V,	 Current Strength: Default
 -- ENET0_RX_DATA[3]	=>  Location: PIN_C15,	 I/O Standard: 2.5 V,	 Current Strength: Default
--- ENET0_RX_CLK	=>  Location: PIN_A15,	 I/O Standard: 2.5 V,	 Current Strength: Default
+-- ENET0_RX_DV	=>  Location: PIN_C17,	 I/O Standard: 2.5 V,	 Current Strength: Default
+-- ENET0_RX_ER	=>  Location: PIN_D18,	 I/O Standard: 2.5 V,	 Current Strength: Default
 -- SW[0]	=>  Location: PIN_AB28,	 I/O Standard: 2.5 V,	 Current Strength: Default
 
 
@@ -112,19 +120,27 @@ SIGNAL ww_devclrn : std_logic;
 SIGNAL ww_devpor : std_logic;
 SIGNAL ww_SW : std_logic_vector(0 DOWNTO 0);
 SIGNAL ww_LEDR : std_logic_vector(0 DOWNTO 0);
+SIGNAL ww_HEX0 : std_logic_vector(6 DOWNTO 0);
 SIGNAL ww_ENET0_RST_N : std_logic;
 SIGNAL ww_ENET0_RX_CLK : std_logic;
 SIGNAL ww_ENET0_RX_DATA : std_logic_vector(3 DOWNTO 0);
 SIGNAL ww_ENET0_RX_DV : std_logic;
 SIGNAL ww_ENET0_RX_ER : std_logic;
-SIGNAL \ENET0_RX_ER~input_o\ : std_logic;
-SIGNAL \ENET0_RX_DV~input_o\ : std_logic;
+SIGNAL \ENET0_RX_CLK~input_o\ : std_logic;
 SIGNAL \ENET0_RX_DATA[0]~input_o\ : std_logic;
 SIGNAL \ENET0_RX_DATA[1]~input_o\ : std_logic;
 SIGNAL \ENET0_RX_DATA[2]~input_o\ : std_logic;
 SIGNAL \ENET0_RX_DATA[3]~input_o\ : std_logic;
-SIGNAL \ENET0_RX_CLK~input_o\ : std_logic;
+SIGNAL \ENET0_RX_DV~input_o\ : std_logic;
+SIGNAL \ENET0_RX_ER~input_o\ : std_logic;
 SIGNAL \LEDR[0]~output_o\ : std_logic;
+SIGNAL \HEX0[0]~output_o\ : std_logic;
+SIGNAL \HEX0[1]~output_o\ : std_logic;
+SIGNAL \HEX0[2]~output_o\ : std_logic;
+SIGNAL \HEX0[3]~output_o\ : std_logic;
+SIGNAL \HEX0[4]~output_o\ : std_logic;
+SIGNAL \HEX0[5]~output_o\ : std_logic;
+SIGNAL \HEX0[6]~output_o\ : std_logic;
 SIGNAL \ENET0_RST_N~output_o\ : std_logic;
 SIGNAL \SW[0]~input_o\ : std_logic;
 
@@ -139,6 +155,7 @@ BEGIN
 
 ww_SW <= SW;
 LEDR <= ww_LEDR;
+HEX0 <= ww_HEX0;
 ENET0_RST_N <= ww_ENET0_RST_N;
 ww_ENET0_RX_CLK <= ENET0_RX_CLK;
 ww_ENET0_RX_DATA <= ENET0_RX_DATA;
@@ -165,6 +182,90 @@ PORT MAP (
 	devoe => ww_devoe,
 	o => \LEDR[0]~output_o\);
 
+-- Location: IOOBUF_X69_Y73_N23
+\HEX0[0]~output\ : cycloneive_io_obuf
+-- pragma translate_off
+GENERIC MAP (
+	bus_hold => "false",
+	open_drain_output => "false")
+-- pragma translate_on
+PORT MAP (
+	i => GND,
+	devoe => ww_devoe,
+	o => \HEX0[0]~output_o\);
+
+-- Location: IOOBUF_X107_Y73_N23
+\HEX0[1]~output\ : cycloneive_io_obuf
+-- pragma translate_off
+GENERIC MAP (
+	bus_hold => "false",
+	open_drain_output => "false")
+-- pragma translate_on
+PORT MAP (
+	i => GND,
+	devoe => ww_devoe,
+	o => \HEX0[1]~output_o\);
+
+-- Location: IOOBUF_X67_Y73_N23
+\HEX0[2]~output\ : cycloneive_io_obuf
+-- pragma translate_off
+GENERIC MAP (
+	bus_hold => "false",
+	open_drain_output => "false")
+-- pragma translate_on
+PORT MAP (
+	i => GND,
+	devoe => ww_devoe,
+	o => \HEX0[2]~output_o\);
+
+-- Location: IOOBUF_X115_Y50_N2
+\HEX0[3]~output\ : cycloneive_io_obuf
+-- pragma translate_off
+GENERIC MAP (
+	bus_hold => "false",
+	open_drain_output => "false")
+-- pragma translate_on
+PORT MAP (
+	i => GND,
+	devoe => ww_devoe,
+	o => \HEX0[3]~output_o\);
+
+-- Location: IOOBUF_X115_Y54_N16
+\HEX0[4]~output\ : cycloneive_io_obuf
+-- pragma translate_off
+GENERIC MAP (
+	bus_hold => "false",
+	open_drain_output => "false")
+-- pragma translate_on
+PORT MAP (
+	i => GND,
+	devoe => ww_devoe,
+	o => \HEX0[4]~output_o\);
+
+-- Location: IOOBUF_X115_Y67_N16
+\HEX0[5]~output\ : cycloneive_io_obuf
+-- pragma translate_off
+GENERIC MAP (
+	bus_hold => "false",
+	open_drain_output => "false")
+-- pragma translate_on
+PORT MAP (
+	i => GND,
+	devoe => ww_devoe,
+	o => \HEX0[5]~output_o\);
+
+-- Location: IOOBUF_X115_Y69_N2
+\HEX0[6]~output\ : cycloneive_io_obuf
+-- pragma translate_off
+GENERIC MAP (
+	bus_hold => "false",
+	open_drain_output => "false")
+-- pragma translate_on
+PORT MAP (
+	i => GND,
+	devoe => ww_devoe,
+	o => \HEX0[6]~output_o\);
+
 -- Location: IOOBUF_X83_Y73_N9
 \ENET0_RST_N~output\ : cycloneive_io_obuf
 -- pragma translate_off
@@ -188,27 +289,16 @@ PORT MAP (
 	i => ww_SW(0),
 	o => \SW[0]~input_o\);
 
--- Location: IOIBUF_X85_Y73_N1
-\ENET0_RX_ER~input\ : cycloneive_io_ibuf
+-- Location: IOIBUF_X56_Y73_N1
+\ENET0_RX_CLK~input\ : cycloneive_io_ibuf
 -- pragma translate_off
 GENERIC MAP (
 	bus_hold => "false",
 	simulate_z_as => "z")
 -- pragma translate_on
 PORT MAP (
-	i => ww_ENET0_RX_ER,
-	o => \ENET0_RX_ER~input_o\);
-
--- Location: IOIBUF_X81_Y73_N1
-\ENET0_RX_DV~input\ : cycloneive_io_ibuf
--- pragma translate_off
-GENERIC MAP (
-	bus_hold => "false",
-	simulate_z_as => "z")
--- pragma translate_on
-PORT MAP (
-	i => ww_ENET0_RX_DV,
-	o => \ENET0_RX_DV~input_o\);
+	i => ww_ENET0_RX_CLK,
+	o => \ENET0_RX_CLK~input_o\);
 
 -- Location: IOIBUF_X62_Y73_N15
 \ENET0_RX_DATA[0]~input\ : cycloneive_io_ibuf
@@ -254,18 +344,43 @@ PORT MAP (
 	i => ww_ENET0_RX_DATA(3),
 	o => \ENET0_RX_DATA[3]~input_o\);
 
--- Location: IOIBUF_X56_Y73_N1
-\ENET0_RX_CLK~input\ : cycloneive_io_ibuf
+-- Location: IOIBUF_X81_Y73_N1
+\ENET0_RX_DV~input\ : cycloneive_io_ibuf
 -- pragma translate_off
 GENERIC MAP (
 	bus_hold => "false",
 	simulate_z_as => "z")
 -- pragma translate_on
 PORT MAP (
-	i => ww_ENET0_RX_CLK,
-	o => \ENET0_RX_CLK~input_o\);
+	i => ww_ENET0_RX_DV,
+	o => \ENET0_RX_DV~input_o\);
+
+-- Location: IOIBUF_X85_Y73_N1
+\ENET0_RX_ER~input\ : cycloneive_io_ibuf
+-- pragma translate_off
+GENERIC MAP (
+	bus_hold => "false",
+	simulate_z_as => "z")
+-- pragma translate_on
+PORT MAP (
+	i => ww_ENET0_RX_ER,
+	o => \ENET0_RX_ER~input_o\);
 
 ww_LEDR(0) <= \LEDR[0]~output_o\;
+
+ww_HEX0(0) <= \HEX0[0]~output_o\;
+
+ww_HEX0(1) <= \HEX0[1]~output_o\;
+
+ww_HEX0(2) <= \HEX0[2]~output_o\;
+
+ww_HEX0(3) <= \HEX0[3]~output_o\;
+
+ww_HEX0(4) <= \HEX0[4]~output_o\;
+
+ww_HEX0(5) <= \HEX0[5]~output_o\;
+
+ww_HEX0(6) <= \HEX0[6]~output_o\;
 
 ww_ENET0_RST_N <= \ENET0_RST_N~output_o\;
 END structure;

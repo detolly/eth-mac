@@ -26,22 +26,28 @@ architecture rtl of mac_receiver is
     type frame_state is (IDLE, MAC_DESTINATION, MAC_SOURCE, LEN, PAYLOAD, CRC);
     signal current_receive_state : receive_state := IDLE;
     signal current_frame_state : frame_state := IDLE;
-    
-    signal receiver_go_idle_on_next : std_logic := '0';
-    signal start_parsing_frame : std_logic := '0';
+
+    signal byte_ready : std_logic := '0';
+
+    signal counter : integer range 0 to 2**16-1 := 0;
+    signal payload_length : integer range 0 to 2**16-1 := 0;
+    signal payload_length_first_byte : std_logic_vector(7 downto 0) := (others => '0');
 
     -- ram related
-    signal byte_clock : std_logic := '0';
     signal current_byte : std_logic_vector(7 downto 0) := (others => '0');
-
     signal write_enable  : std_logic := '0';
+
     signal frame_corrupt : std_logic := '0';
     signal drop_frame    : std_logic := '0';
-
     signal write_discard : std_logic := '0';
+
+    signal write_byte : std_logic_vector(7 downto 0) := (others => '0');
+    signal write_ready : std_logic := '0';
 begin
     connected_mac_address <= (others => '0');
-    write_discard <= '1' when (drop_frame = '1' or frame_corrupt = '1') else '0';
+    drop_frame <= '1' when payload_length > 1500 else '0';
+    write_discard <= '1' when drop_frame = '1' or frame_corrupt = '1' else '0';
+    frame_corrupt <= RX_ER or not RX_DV;
 
     rx_ram: entity work.async_read_write_ring_buffer
         generic map(DATA_WIDTH => 8,
@@ -51,101 +57,94 @@ begin
                   read_data      => buffer_read_data,
                   read_available => buffer_read_available,
 
-                  write_clk      => byte_clock,
+                  write_clk      => write_ready,
                   write_en       => write_enable,
-                  write_data     => current_byte,
+                  write_data     => write_byte,
                   write_discard  => write_discard);
 
-    receiver: process (RX_CLK)
+    receiver: process(RX_CLK)
     begin
         if rising_edge(RX_CLK) then
-            write_enable <= '0';
-            frame_corrupt <= RX_ER or not RX_DV;
-            start_parsing_frame <= '0';
-            
+            write_ready <= '0';
+            write_byte <= current_byte;
+
             case current_receive_state is
             when IDLE =>
+                current_byte <= (others => '0');
                 if RX_DV = '1' then
                     current_receive_state <= PREAMBLE_SFD;
                 end if;
             when PREAMBLE_SFD =>
                 if RX_DATA = "1011" then
-                    start_parsing_frame <= '1';
                     current_receive_state <= FIRST;
                 end if;
             when FIRST =>
-                byte_clock <= '0';
-                write_enable <= '1';
-                if receiver_go_idle_on_next = '1' then
-                    current_receive_state <= IDLE;
-                else
-                    current_byte(7 downto 4) <= RX_DATA;
-                    current_receive_state <= SECOND;
-                end if;
+                byte_ready <= '0';
+                current_byte <= RX_DATA & "0000";
+                current_receive_state <= SECOND;
             when SECOND =>
-                write_enable <= '1';
-                current_byte(3 downto 0) <= RX_DATA;
-                current_receive_state <= FIRST;
-                byte_clock <= '1';
-            end case;
-        end if;
-    end process;
+                byte_ready <= '1';
 
-    byte_processor: process(byte_clock)
-        variable counter : integer range 0 to 2**16-1 := 0;
-        variable payload_length : integer range 0 to 2**16-1 := 0;
-        variable payload_length_vector : std_logic_vector(15 downto 0) := (others => '0');
-    begin
-        if rising_edge(byte_clock) then
-            drop_frame <= '0';
-            if payload_length > 1500 then drop_frame <= '1'; end if;
-            
-            receiver_go_idle_on_next <= '0';
-
-            case current_frame_state is
-            when IDLE =>
-                counter := 0;
-                payload_length := 0;
-                payload_length_vector := (others => '0');
-                if start_parsing_frame = '1' then
+                if current_frame_state = IDLE then
                     current_frame_state <= MAC_DESTINATION;
                 end if;
-            when MAC_DESTINATION =>
-                counter := counter + 1;
-                if counter = 6 then
-                    counter := 0;
-                    current_frame_state <= MAC_SOURCE;
-                end if;
-            when MAC_SOURCE =>
-                counter := counter + 1;
-                if counter = 6 then
-                    counter := 0;
-                    current_frame_state <= LEN;
-                end if;
-            when LEN =>
-                counter := counter + 1;
-                if counter = 1 then
-                    payload_length_vector(15 downto 8) := current_byte;
-                else
-                    payload_length_vector(7 downto 0) := current_byte;
-                    payload_length := to_integer(unsigned(payload_length_vector));
-                    counter := 0;
-                    current_frame_state <= PAYLOAD;
-                end if;
-            when PAYLOAD =>
-                counter := counter + 1;
-                if counter = payload_length then
-                    counter := 0;
-                    current_frame_state <= CRC;
-                end if;
-            when CRC =>
-                counter := counter + 1;
-                if counter = 4 then
-                    counter := 0;
-                    current_frame_state <= IDLE;
-                    receiver_go_idle_on_next <= '1';
-                end if;
+
+                current_byte(3 downto 0) <= RX_DATA;
+                current_receive_state <= FIRST;
             end case;
+
+            if byte_ready = '1' then
+                write_enable <= '0';
+                write_ready <= '1';
+
+                case current_frame_state is
+                when IDLE =>
+
+                when MAC_DESTINATION =>
+                    write_enable <= '1';
+                    if counter = 5 then
+                        counter <= 0;
+                        current_frame_state <= MAC_SOURCE;
+                    else
+                        counter <= counter + 1;
+                    end if;
+                when MAC_SOURCE =>
+                    write_enable <= '1';
+                    if counter = 5 then
+                        counter <= 0;
+                        current_frame_state <= LEN;
+                    else
+                        counter <= counter + 1;
+                    end if;
+                when LEN =>
+                    write_enable <= '1';
+                    if counter = 0 then
+                        payload_length_first_byte <= current_byte;
+                        counter <= counter + 1;
+                    else
+                        payload_length <= to_integer(unsigned(payload_length_first_byte & current_byte));
+                        counter <= 0;
+                        current_frame_state <= PAYLOAD;
+                    end if;
+                when PAYLOAD =>
+                    write_enable <= '1';
+                    if counter = payload_length - 1 then
+                        write_enable <= '0';
+                        counter <= 0;
+                        current_frame_state <= CRC;
+                    else
+                        counter <= counter + 1;
+                    end if;
+                when CRC =>
+                    if counter = 3 then
+                        counter <= 0;
+                        current_frame_state <= IDLE;
+                        current_receive_state <= IDLE; -- extend with padding / inter-receive gap
+                    else
+                        counter <= counter + 1;
+                    end if;
+                end case;
+            end if;
         end if;
     end process;
 end architecture;

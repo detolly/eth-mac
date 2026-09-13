@@ -3,3 +3,7 @@ modelsim.ini
 msim_transcript
 rtl_work/
 vsim.wlf
+*.bak*
+*.do
+*.vstf
+*.mif
