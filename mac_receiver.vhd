@@ -29,8 +29,8 @@ architecture rtl of mac_receiver is
 
     signal byte_ready : std_logic := '0';
 
-    signal counter : integer range 0 to 2**16-1 := 0;
-    signal payload_length : integer range 0 to 2**16-1 := 0;
+    signal counter : integer range 0 to 2**11-1 := 0;
+    signal payload_length : integer range 0 to 2**11-1 := 0;
     signal payload_length_first_byte : std_logic_vector(7 downto 0) := (others => '0');
 
     -- ram related

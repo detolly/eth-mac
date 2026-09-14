@@ -81,5 +81,4 @@ begin
             end if;
         end if;
     end process;
-
-end;
+end architecture;

@@ -19,8 +19,8 @@ architecture rtl of packet_mux is
 type read_state_t is (WAIT_FOR_READ, MAC_DESTINATION, MAC_SOURCE, PAYLOAD_LENGTH, PACKET_ADDR, PACKET_BYTES);
 signal read_state : read_state_t := WAIT_FOR_READ;
 
-signal counter : integer range 0 to 4096 - 1 := 0;
-signal payload_len : integer range 0 to 2**16 - 1 := 0;
+signal counter : integer range 0 to 2**11 - 1 := 0;
+signal payload_len : integer range 0 to 2**11 - 1 := 0;
 signal previous_payload_byte : std_logic_vector(7 downto 0) := (others => '0');
 
 begin
