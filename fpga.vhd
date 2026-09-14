@@ -62,7 +62,7 @@ begin
 
     mux: entity work.packet_mux
         port map(n_reset         => n_reset,
-        
+
                  read_clk        => read_clock,
                  read_en         => read_enable,
                  read_data       => read_data,
@@ -77,16 +77,16 @@ begin
 
                   -- MDC     : out   std_logic;
                   -- MDIO    : inout std_logic;
-                 
+
                   -- RST_N   : out  std_logic;
-                 
+
                   RX_CLK  =>  ENET0_RX_CLK,
                   -- RX_COL  : in  std_logic;
                   -- RX_CRS  : in  std_logic;
                   RX_DATA => ENET0_RX_DATA,
                   RX_DV   => ENET0_RX_DV,
                   RX_ER   => ENET0_RX_ER,
-                 
+
                   -- TX_CLK  : in  std_logic;
                   -- TX_DATA : out std_logic_vector(3 downto 0);
                   -- TX_EN   : out std_logic;

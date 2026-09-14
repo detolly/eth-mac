@@ -58,7 +58,7 @@ begin
             end if;
         end if;
     end process;
-    
+
     writer: process(write_clk) is
     begin
         if rising_edge(write_clk) then
@@ -74,12 +74,12 @@ begin
                 is_writing <= '0';
             elsif write_en = '1' then
                 ram(write_addr) <= write_data;
-                
+
                 if is_writing = '0' then
                     is_writing <= '1';
                     backup_write_addr <= write_addr;
                 end if;
-                
+
                 if write_addr = NUM_DATA - 1 then
                     write_addr <= 0;
                 else
