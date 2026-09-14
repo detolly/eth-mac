@@ -42,8 +42,6 @@ architecture rtl of fpga is
     signal n_reset : std_logic;
 begin
     n_reset <= SW(0);
-    
-    ENET0_RST_N <= n_reset;
     LEDR(0) <= n_reset;
 
     read_clock <= ENET0_RX_CLK; -- CLOCK_50
@@ -78,9 +76,9 @@ begin
                   -- MDC     : out   std_logic;
                   -- MDIO    : inout std_logic;
 
-                  -- RST_N   : out  std_logic;
-
-                  RX_CLK  =>  ENET0_RX_CLK,
+                  RX_CLK  => ENET0_RX_CLK,
+                  
+                  RST_N   => ENET0_RST_N,
                   -- RX_COL  : in  std_logic;
                   -- RX_CRS  : in  std_logic;
                   RX_DATA => ENET0_RX_DATA,

@@ -9,7 +9,7 @@ entity mac is
          -- MDC     : out   std_logic;
          -- MDIO    : inout std_logic;
 
-         -- RST_N   : out  std_logic;
+         RST_N   : out std_logic;
 
          -- RX_COL  : in  std_logic;
          -- RX_CRS  : in  std_logic;
@@ -33,6 +33,8 @@ architecture rtl of mac is
     constant mac_address           : std_logic_vector(47 downto 0) := x"112233445566";
     signal connected_mac_address   : std_logic_vector(47 downto 0);
 begin
+    RST_N <= n_reset;
+
     receiver: entity work.mac_receiver
         port map(n_reset               => n_reset,
         
