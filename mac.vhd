@@ -37,7 +37,7 @@ begin
 
     receiver: entity work.mac_receiver
         port map(n_reset               => n_reset,
-        
+
                  RX_CLK                => RX_CLK,
                  RX_DATA               => RX_DATA,
                  RX_DV                 => RX_DV,
