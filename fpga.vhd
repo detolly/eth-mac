@@ -36,7 +36,6 @@ architecture rtl of fpga is
     signal read_data : std_logic_vector(7 downto 0) := (others => '0');
     
     signal packet_ready : std_logic := '0';
-    signal packet_done : std_logic := '0';
     signal packet_address : std_logic_vector(7 downto 0) := (others => '0');
     signal packet_data : std_logic_vector(7 downto 0) := (others => '0');
 begin
@@ -53,7 +52,6 @@ begin
                  packet_address => packet_address,
                  packet_ready   => packet_ready,
                  packet_data    => packet_data,
-                 packet_done    => packet_done,
                  
                  hex            => HEX0);
     
@@ -65,8 +63,7 @@ begin
 
                  packet_ready    => packet_ready,
                  packet_address  => packet_address,
-                 packet_data     => packet_data,
-                 packet_done     => packet_done);
+                 packet_data     => packet_data);
 
     mac0: entity work.mac
         port map ( -- MDC     : out   std_logic;

@@ -13,7 +13,7 @@ constant period : time := 40ns;
 
 type nibble_array is array (natural range <>) of std_logic_vector(3 downto 0);
 
-signal data1 : nibble_array(0 to 61) := (
+constant data1 : nibble_array := (
   -- preamble 7×55
   "1010","1010","1010","1010","1010","1010","1010","1010",
   "1010","1010","1010","1010","1010","1010","1010","1011",
@@ -25,6 +25,22 @@ signal data1 : nibble_array(0 to 61) := (
   "0000","0000","0000","0101",
   -- payload "DEADBEEF00" + 36 zero pad
   "1101","1110","1010","1101","1011","1110","1110","1111","0000","0000",
+  -- FCS (not actually verifying this lol)
+  "1010","1010","1010","1010","1010","1010","1010","1010"
+);
+
+constant hex_data : nibble_array := (
+  -- preamble 7×55
+  "1010","1010","1010","1010","1010","1010","1010","1010",
+  "1010","1010","1010","1010","1010","1010","1010","1011",
+  -- dest FE:DC:BA:98:76:54
+  "1111","1110","1101","1100","1011","1010","1001","1000","0111","0110","0101","0100",
+  -- src 02:00:00:00:00:01
+  "0000","0010","0000","0000","0000","0000","0000","0000","0000","0000","0000","0001",
+  -- length 0x0002 (2 bytes real data)
+  "0000","0000","0000","0010",
+  -- payload - change hex to something 
+  "0000","0001","0111","1111",
   -- FCS (not actually verifying this lol)
   "1010","1010","1010","1010","1010","1010","1010","1010"
 );
@@ -58,8 +74,9 @@ init : PROCESS
 BEGIN                                                        
     ENET0_RX_DV <= '1';
 
-    for i in data1'range loop
-        ENET0_RX_DATA <= data1(i);
+    for i in hex_data'range loop
+        -- ENET0_RX_DATA <= data1(i);
+        ENET0_RX_DATA <= hex_data(i);
         wait until clock = '0';
     end loop;
 

@@ -29,17 +29,18 @@ architecture rtl of async_read_write_ring_buffer is
     signal last_good_write_addr : integer range 0 to NUM_DATA - 1 := 0;
 
     signal is_writing : std_logic := '0';
+    signal read_avail : std_logic := '0';
 
     attribute ramstyle : string;
     attribute ramstyle of ram : signal is "M9K";
 begin
-
-    read_available <= '1' when ((read_addr /= write_addr) and ((backup_write_addr /= 0) or (last_good_write_addr /= backup_write_addr))) else '0';
+    read_avail <= '1' when last_good_write_addr /= read_addr else '0';
+    read_available <= read_avail;
 
     reader: process(read_clk) is
     begin
         if rising_edge(read_clk) then
-            if read_en = '1' then
+            if read_en = '1' and read_avail = '1' then
                 read_data <= ram(read_addr);
                 
                 if read_addr = NUM_DATA - 1 then
@@ -65,11 +66,12 @@ begin
                 backup_write_addr <= 0;
                 is_writing <= '0';
             elsif write_en = '1' then
+                ram(write_addr) <= write_data;
+                
                 if is_writing = '0' then
                     is_writing <= '1';
                     backup_write_addr <= write_addr;
                 end if;
-                ram(write_addr) <= write_data;
                 
                 if write_addr = NUM_DATA - 1 then
                     write_addr <= 0;
