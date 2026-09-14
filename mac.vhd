@@ -4,7 +4,9 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity mac is
-    port(-- MDC     : out   std_logic;
+    port(n_reset : in std_logic;
+
+         -- MDC     : out   std_logic;
          -- MDIO    : inout std_logic;
 
          -- RST_N   : out  std_logic;
@@ -32,7 +34,9 @@ architecture rtl of mac is
     signal connected_mac_address   : std_logic_vector(47 downto 0);
 begin
     receiver: entity work.mac_receiver
-        port map(RX_CLK                => RX_CLK,
+        port map(n_reset               => n_reset,
+        
+                 RX_CLK                => RX_CLK,
                  RX_DATA               => RX_DATA,
                  RX_DV                 => RX_DV,
                  RX_ER                 => RX_ER,

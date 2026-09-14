@@ -7,7 +7,9 @@ entity async_read_write_ring_buffer is
     generic(DATA_WIDTH : positive;
             NUM_DATA   : positive);
 
-    port(read_clk          : in  std_logic;
+    port(n_reset           : in  std_logic;
+
+         read_clk          : in  std_logic;
          read_en           : in  std_logic;
          read_data         : out std_logic_vector(DATA_WIDTH - 1 downto 0);
          read_available    : out std_logic;
@@ -40,7 +42,10 @@ begin
     reader: process(read_clk) is
     begin
         if rising_edge(read_clk) then
-            if read_en = '1' and read_avail = '1' then
+            if n_reset = '0' then
+                read_addr <= 0;
+                read_data <= (others => '0');
+            elsif read_en = '1' and read_avail = '1' then
                 read_data <= ram(read_addr);
                 
                 if read_addr = NUM_DATA - 1 then
@@ -57,7 +62,9 @@ begin
     writer: process(write_clk) is
     begin
         if rising_edge(write_clk) then
-            if write_en = '0' and is_writing = '1' then
+            if n_reset = '0' then
+                write_addr <= 0;
+            elsif write_en = '0' and is_writing = '1' then
                 if write_discard = '1' then
                     write_addr <= backup_write_addr;
                 else

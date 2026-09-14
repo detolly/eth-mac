@@ -38,16 +38,21 @@ architecture rtl of fpga is
     signal packet_ready : std_logic := '0';
     signal packet_address : std_logic_vector(7 downto 0) := (others => '0');
     signal packet_data : std_logic_vector(7 downto 0) := (others => '0');
+    
+    signal n_reset : std_logic;
 begin
-
-    ENET0_RST_N <= SW(0);
-    LEDR(0) <= SW(0);
+    n_reset <= SW(0);
+    
+    ENET0_RST_N <= n_reset;
+    LEDR(0) <= n_reset;
 
     read_clock <= ENET0_RX_CLK; -- CLOCK_50
 
     ss: entity work.seven_segment
         generic map(ADDRESS => "00000001")
-        port map(read_clock     => read_clock,
+        port map(n_reset        => n_reset,
+
+                 read_clock     => read_clock,
 
                  packet_address => packet_address,
                  packet_ready   => packet_ready,
@@ -56,7 +61,9 @@ begin
                  hex            => HEX0);
 
     mux: entity work.packet_mux
-        port map(read_clk        => read_clock,
+        port map(n_reset         => n_reset,
+        
+                 read_clk        => read_clock,
                  read_en         => read_enable,
                  read_data       => read_data,
                  read_available  => read_available,
@@ -66,12 +73,14 @@ begin
                  packet_data     => packet_data);
 
     mac0: entity work.mac
-        port map ( -- MDC     : out   std_logic;
+        port map (n_reset => n_reset,
+
+                  -- MDC     : out   std_logic;
                   -- MDIO    : inout std_logic;
                  
                   -- RST_N   : out  std_logic;
                  
-                  RX_CLK =>  ENET0_RX_CLK,
+                  RX_CLK  =>  ENET0_RX_CLK,
                   -- RX_COL  : in  std_logic;
                   -- RX_CRS  : in  std_logic;
                   RX_DATA => ENET0_RX_DATA,

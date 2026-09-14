@@ -6,12 +6,14 @@ use ieee.numeric_std.all;
 entity seven_segment is
     generic (ADDRESS    : std_logic_vector(7 downto 0));
     
-    port(read_clock     : in  std_logic;
-    
+    port(n_reset        : in std_logic;
+
+         read_clock     : in  std_logic;
+
          packet_address : in  std_logic_vector(7 downto 0);
          packet_ready   : in  std_logic;
          packet_data    : in  std_logic_vector(7 downto 0);
-         
+
          hex            : out std_logic_vector(6 downto 0));
 end entity;
 
@@ -20,7 +22,9 @@ begin
     updater: process(read_clock)
     begin
         if rising_edge(read_clock) then
-            if packet_address = ADDRESS and packet_ready = '1' then
+            if n_reset = '0' then
+                hex <= (others => '0');
+            elsif packet_address = ADDRESS and packet_ready = '1' then
                 hex <= packet_data(6 downto 0);
             end if;
         end if;

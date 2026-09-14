@@ -4,11 +4,13 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity packet_mux is
-    port(read_clk          : in  std_logic;
+    port(n_reset           : in std_logic;
+    
+         read_clk          : in  std_logic;
          read_en           : out std_logic;
          read_data         : in  std_logic_vector(7 downto 0);
          read_available    : in  std_logic;
-         
+
          packet_ready      : out std_logic;
          packet_address    : out std_logic_vector(7 downto 0);
          packet_data       : out std_logic_vector(7 downto 0));
@@ -30,52 +32,61 @@ begin
     reader: process(read_clk)
     begin
         if rising_edge(read_clk) then
-            packet_ready <= '0';
-
-            if read_available = '0' then
+            if n_reset = '0' then
+                packet_ready <= '0';
+                counter <= 0;
+                packet_address <= (others => '0');
+                payload_len <= 0;
+                previous_payload_byte <= (others => '0');
                 read_state <= WAIT_FOR_READ;
             else
-                case read_state is
-                when WAIT_FOR_READ =>
-                    if read_available = '1' then
-                        read_state <= MAC_DESTINATION;
-                    end if;
-                when MAC_DESTINATION =>
-                    counter <= counter + 1;
-                    if counter = 5 then
-                        counter <= 0;
-                        read_state <= MAC_SOURCE;
-                    end if;
-                when MAC_SOURCE =>
-                    counter <= counter + 1;
-                    if counter = 5 then
-                        counter <= 0;
-                        read_state <= PAYLOAD_LENGTH;
-                    end if;
-                when PAYLOAD_LENGTH =>
-                    counter <= 1;
-                    if counter = 0 then
-                        previous_payload_byte <= read_data;
-                    else
-                        counter <= 0;
-                        payload_len <= to_integer(unsigned(previous_payload_byte & read_data)) - 1;
-                        read_state <= PACKET_ADDR;
-                    end if;
-                when PACKET_ADDR =>
-                    packet_address <= read_data;
-                    read_state <= PACKET_BYTES;
-                    payload_len <= payload_len - 1;
-                    packet_ready <= '1';
-                when PACKET_BYTES =>
-                    packet_ready <= '1';
-                    if payload_len = 1 then
-                        packet_ready <= '0';
-                        packet_address <= (others => '0');
-                        read_state <= MAC_DESTINATION;
-                    else
+                packet_ready <= '0';
+
+                if read_available = '0' then
+                    read_state <= WAIT_FOR_READ;
+                else
+                    case read_state is
+                    when WAIT_FOR_READ =>
+                        if read_available = '1' then
+                            read_state <= MAC_DESTINATION;
+                        end if;
+                    when MAC_DESTINATION =>
+                        counter <= counter + 1;
+                        if counter = 5 then
+                            counter <= 0;
+                            read_state <= MAC_SOURCE;
+                        end if;
+                    when MAC_SOURCE =>
+                        counter <= counter + 1;
+                        if counter = 5 then
+                            counter <= 0;
+                            read_state <= PAYLOAD_LENGTH;
+                        end if;
+                    when PAYLOAD_LENGTH =>
+                        counter <= 1;
+                        if counter = 0 then
+                            previous_payload_byte <= read_data;
+                        else
+                            counter <= 0;
+                            payload_len <= to_integer(unsigned(previous_payload_byte & read_data)) - 1;
+                            read_state <= PACKET_ADDR;
+                        end if;
+                    when PACKET_ADDR =>
+                        packet_address <= read_data;
+                        read_state <= PACKET_BYTES;
                         payload_len <= payload_len - 1;
-                    end if;
-                end case;
+                        packet_ready <= '1';
+                    when PACKET_BYTES =>
+                        packet_ready <= '1';
+                        if payload_len = 1 then
+                            packet_ready <= '0';
+                            packet_address <= (others => '0');
+                            read_state <= MAC_DESTINATION;
+                        else
+                            payload_len <= payload_len - 1;
+                        end if;
+                    end case;
+                end if;
             end if;
         end if;
     end process;
