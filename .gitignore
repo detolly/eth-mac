@@ -5,3 +5,4 @@ db/
 output_files/
 *.rpt
 greybox*
+*.csv

@@ -25,7 +25,7 @@ end entity;
 architecture rtl of mac_receiver is
     -- mac / frame state
     type receive_state is (PREAMBLE_SFD, FIRST, SECOND);
-    type frame_state is (MAC_DESTINATION, MAC_SOURCE, LEN, PAYLOAD, CRC);
+    type frame_state is (MAC_DESTINATION, MAC_SOURCE, LEN, PAYLOAD, CRC, COUNTDOWN);
     signal current_receive_state : receive_state := PREAMBLE_SFD;
     signal current_frame_state : frame_state := MAC_DESTINATION;
 
@@ -46,7 +46,6 @@ architecture rtl of mac_receiver is
 begin
     write_enable <= byte_ready;
     write_discard <= '1' when drop_frame = '1' or frame_corrupt = '1' else '0';
-    write_transaction  <= '0' when current_receive_state = PREAMBLE_SFD or current_frame_state = CRC or RX_DV = '0' else '1';
 
     rx_ram: entity work.async_read_write_ring_buffer
         generic map(DATA_WIDTH => 8,
@@ -76,6 +75,7 @@ begin
             current_byte <= (others => '0');
             counter <= 0;
             byte_ready <= '0';
+            write_transaction <= '0';
         end procedure;
 
         procedure hard_reset is
@@ -98,16 +98,18 @@ begin
 
                     case current_receive_state is
                     when PREAMBLE_SFD =>
-                        if RX_DATA = "1011" then
+                        write_transaction <= '0';
+                        if RX_DATA = "1101" then
                             current_receive_state <= FIRST;
+                            write_transaction <= '1';
                         end if;
                     when FIRST =>
                         byte_ready <= '0';
 
-                        current_byte(7 downto 4) <= RX_DATA;
+                        current_byte(3 downto 0) <= RX_DATA;
                         current_receive_state <= SECOND;
                     when SECOND =>
-                        current_byte(3 downto 0) <= RX_DATA;
+                        current_byte(7 downto 4) <= RX_DATA;
                         current_receive_state <= FIRST;
 
                         byte_ready <= '1';
@@ -140,16 +142,30 @@ begin
                             end if;
                         when PAYLOAD =>
                             if counter = payload_length - 1 then
-                                counter <= 0;
-                                current_frame_state <= CRC;
+                                write_transaction <= '0';
+
+                                if payload_length < 46 then
+                                    counter <= 46 - counter - 2;
+                                    current_frame_state <= COUNTDOWN;
+                                else
+                                    counter <= 0;
+                                    current_frame_state <= CRC;
+                                end if;
                             else
                                 counter <= counter + 1;
                             end if;
                         when CRC =>
                             if counter = 3 then
                                 counter <= 0;
+                                soft_reset;
                             else
                                 counter <= counter + 1;
+                            end if;
+                        when COUNTDOWN =>
+                            if counter = 0 then
+                                current_frame_state <= CRC;
+                            else
+                                counter <= counter - 1;
                             end if;
                         end case;
                     end if;
