@@ -37,6 +37,7 @@ architecture rtl of async_read_write_ring_buffer is
     signal last_good_write_addr : integer range 0 to NUM_DATA - 1 := 0;
     signal is_writing           : std_logic := '0';
 begin
+    read_avail <= '1' when last_good_write_addr /= read_addr else '0';
     read_available <= read_avail;
 
     reader: process(read_clk) is
@@ -61,20 +62,18 @@ end process;
     writer: process(write_clk) is
     begin
         if rising_edge(write_clk) then
-            if last_good_write_addr /= read_addr then read_avail <= '1'; else read_avail <= '0'; end if;
-
             if n_reset = '0' then
                 write_addr <= 0;
                 last_good_write_addr <= 0;
                 is_writing <= '0';
             elsif write_transaction = '0' and is_writing = '1' then
+                is_writing <= '0';
+
                 if write_discard = '1' then
                     write_addr <= last_good_write_addr;
                 else
                     last_good_write_addr <= write_addr;
-                    read_avail <= '1';
                 end if;
-                is_writing <= '0';
             elsif write_en = '1' and write_transaction = '1' then
                 ram(write_addr) <= write_data;
 
