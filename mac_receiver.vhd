@@ -156,7 +156,6 @@ begin
                             end if;
                         when CRC =>
                             if counter = 3 then
-                                counter <= 0;
                                 soft_reset;
                             else
                                 counter <= counter + 1;

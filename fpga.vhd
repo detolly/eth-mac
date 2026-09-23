@@ -43,7 +43,7 @@ architecture rtl of fpga is
 begin
     n_reset <= SW(0);
     LEDR(0) <= n_reset;
-    
+
     read_clock <= ENET0_RX_CLK;
 
     ss: entity work.seven_segment

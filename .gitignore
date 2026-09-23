@@ -6,3 +6,4 @@ output_files/
 *.rpt
 greybox*
 *.csv
+*.qws
