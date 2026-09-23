@@ -1,0 +1,92 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+
+\title{%
+    \Huge\bfseries Semester Assignment\\[0.5em]
+    \large\normalfont Multipurpose Ethernet MAC implementation in VHDL\\
+    \vspace{1cm}
+}
+\author{
+    \input{author}
+}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\vfill
+
+\vspace{1cm}
+
+\input{declaration}
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Introduction}
+\subsection{Project Description}
+\subsection{The Ethernet Stack}
+\subsection{Introduction to FPGAs}
+\subsection{DE2-115 Development Board}
+\subsection{VHDL and Hardware Description Languages}
+\subsection{Project Scope}
+
+\newpage
+
+\section{Project Outline}
+
+\subsection{High-Level Overview}
+\subsection{Interfacing with the PHY}
+\subsubsection{MDIO}
+\subsubsection{MII}
+\subsection{Parsing 802.3 Ethernet Frames}
+\subsection{Relaying Data}
+\subsection{Layers above 802.3 Frames}
+\subsection{Acting upon Received Data}
+
+\newpage
+
+\section{Implementation}
+
+\subsection{Hardware Block Diagram}
+\subsection{Clock Domains}
+
+\subsection{Memory Hierarchy}
+\subsubsection{Internal RAM}
+\subsubsection{External SRAM}
+\subsubsection{Dividing the Bus}
+
+\subsection{Receiving}
+\subsubsection{Receiver State Machine}
+\subsubsection{Handling Multiple Receivers}
+
+\subsection{Transmitting}
+\subsubsection{Transmitter State Machine}
+\subsubsection{Handling Multiple Transmitters}
+
+\newpage
+
+\section{Testing and Verification}
+\subsection{Testing Procedure}
+\subsection{Questa Simulation}
+\subsection{SignalTap}
+\subsection{Testing on Real Hardware}
+\subsubsection{Testing with a Computer}
+\subsubsection{FPGA with two MACs}
+\subsubsection{Multiple FPGAs}
+\subsubsection{Network of FPGAs}
+
+\newpage
+
+\section{Conclusion}
+
+\newpage
+
+\section*{Reference}
+\addcontentsline{toc}{section}{Reference}
+
+\end{document}
