@@ -2,10 +2,19 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage{geometry}
+\usepackage{graphicx}
+
+\usepackage{listings}
+\usepackage{xcolor}
+
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{cite}
+
 \geometry{margin=2.5cm}
 
-\title{%
-    \Huge\bfseries Semester Assignment\\[0.5em]
+\title{
+    \Huge\bfseries Term Assignment\\[0.5em]
     \large\normalfont Multipurpose Ethernet MAC implementation in VHDL\\
     \vspace{1cm}
 }
@@ -18,20 +27,49 @@
 
 \maketitle
 \vfill
-
 \vspace{1cm}
-
 \input{declaration}
-
 \newpage
+
 \tableofcontents
+
 \newpage
 
 \section{Introduction}
-\subsection{Project Description}
-\subsection{The Ethernet Stack}
+\subsection{Remark on the usage of LLMs}
+The usage of LLMs during this project has been with strict restrictions.
+Firstly, it was of utmost importance to keep any and all material written by, designed by, and implemented by humans.
+Therefore, not so much as a single sentence or line of code present in this work, including this document, has been produced by an LLM.
+
+There is, however, no denying that LLMs are useful as a "sparring partner" for tasks such as testing your understanding, learning syntax, or simply as a search engine for technical documentation.
+It has been used as such for this project.
+
+\subsection{Project description}
+The goal of this project is to implement an 802.3 Ethernet MAC in Hardware Description Language fit to run on an FPGA development board.
+The MAC should, like any compliant 802.3 Ethernet MAC, be able to communicate with an Ethernet PHY through the MII and MDIO interfaces, be able to transmit, receive and parse 802.3 Ethernet frames, drop irrelevant or damaged frames, and should also be able to relay received data to another system that is able to act upon it.
+The MAC must also be able to transmit the replies that such a system might have.
+
+In the interest of saving time, only the MII interface will be implemented (which implies a max bandwidth of 100Mbit/s), and only full-duplex communication will be supported. This greatly reduces the complexity of the MAC, while still retaining broad compatability with modern hardware.
+
+\subsection{The Ethernet stack}
+In order to be able to implement an Ethernet MAC, we need to understand its position and role in the Ethernet stack.
+The Ethernet stack on a single host consists of an Ethernet PHY, its associated physical port, and an Etnernet MAC.
+Together they form a NIC -- Network Interface Controller.
+\subsubsection{The PHY}
+The role of the PHY is to create and manage a link between it and the PHY on the other side of the cable.
+The link is an umbrella term meant to describe the control and sharing of physical medium upon which data will be transmitted.
+The link has several properties, the most important of which, for our purposes, is the link bandwidth.
+On modern hardware it's common for the PHY to have autonegotiation capabilities, such that it can produce the best possible link between the two hosts.
+
+For example, if PHY-A supports 1000Mbit/s, but PHY-B only supports 100 Mbit/s, then the link bandwidth will be forced to the minimum supported by both PHYs, which is 100Mbit/s.
+Configuring the link bandwidth on our PHY will be important, because different bandwidths use different interfaces between the PHY and the MAC.
+
+For the purposes of this project, we will not be studying the inner workings of the PHY.
+We will abstract it as a black box, and talk to it through the interfaces it expects.
+\subsubsection{The MAC}
 \subsection{Introduction to FPGAs}
 \subsection{DE2-115 Development Board}
+The target platform is the DE2-115 development board, which has the additional hardware required to complete and test the project, such as two RJ45 ports and respective Ethernet PHYs. The board contains a 
 \subsection{VHDL and Hardware Description Languages}
 \subsection{Project Scope}
 
