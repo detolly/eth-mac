@@ -18,15 +18,21 @@ entity mac is
          RX_DV   : in  std_logic;
          RX_ER   : in  std_logic;
 
-         -- TX_CLK  : in  std_logic;
-         -- TX_DATA : out std_logic_vector(3 downto 0);
-         -- TX_EN   : out std_logic;
-         -- TX_ER   : out std_logic;
+         TX_CLK  : in  std_logic;
+         TX_DATA : out std_logic_vector(3 downto 0);
+         TX_EN   : out std_logic;
+         TX_ER   : out std_logic;
 
          buffer_read_clk          : in  std_logic;
          buffer_read_data         : out std_logic_vector(7 downto 0);
          buffer_read_en           : in  std_logic;
-         buffer_read_available    : out std_logic);
+         buffer_read_available    : out std_logic;
+         
+         buffer_write_clk         : in  std_logic;
+         buffer_write_en          : in  std_logic;
+         buffer_write_data        : in  std_logic_vector(7 downto 0);
+         buffer_write_transaction : in  std_logic;
+         buffer_write_discard     : in  std_logic);
 end entity;
 
 architecture rtl of mac is
@@ -34,6 +40,20 @@ architecture rtl of mac is
     signal connected_mac_address   : std_logic_vector(47 downto 0);
 begin
     RST_N <= n_reset;
+    
+    transmitter: entity work.mac_transmitter
+        port map(n_reset               => n_reset,
+    
+                 TX_CLK                => TX_CLK,
+                 TX_DATA               => TX_DATA,
+                 TX_EN                 => TX_EN,
+                 TX_ER                 => TX_ER,
+                 
+                 write_clk             => buffer_write_clk,
+                 write_en              => buffer_write_en,
+                 write_data            => buffer_write_data,
+                 write_transaction     => buffer_write_transaction,
+                 write_discard         => buffer_write_discard);
 
     receiver: entity work.mac_receiver
         port map(n_reset               => n_reset,

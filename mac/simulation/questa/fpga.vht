@@ -86,7 +86,7 @@ constant real_data : nibble_array := (
     "0000", "0000",
     "0000", "0000"
 );
-                                                  
+
 signal SW            : std_logic_vector(0 downto 0);
 signal LEDR          : std_logic_vector(0 downto 0);
 signal HEX0          : std_logic_vector(6 downto 0);
@@ -96,24 +96,40 @@ signal ENET0_RX_DATA : std_logic_vector(3 downto 0);
 signal ENET0_RX_DV   : std_logic;
 signal ENET0_RX_ER   : std_logic;
 
+signal ENET0_TX_CLK  : std_logic;
+signal ENET0_TX_DATA : std_logic_vector(3 downto 0);
+signal ENET0_TX_ER   : std_logic;
+signal ENET0_TX_EN   : std_logic;
+
+signal CLOCK_50 : std_logic;
+
 BEGIN
     i1 : entity work.fpga
     PORT MAP (
 -- list connections between master ports and signals
+    CLOCK_50 => CLOCK_50,
     ENET0_RX_CLK => ENET0_RX_CLK,
     ENET0_RX_DATA => ENET0_RX_DATA,
     ENET0_RX_DV => ENET0_RX_DV,
     ENET0_RX_ER => ENET0_RX_ER,
+    ENET0_TX_CLK => ENET0_TX_CLK,
+    ENET0_TX_DATA => ENET0_TX_DATA,
+    ENET0_TX_ER => ENET0_TX_ER,
+    ENET0_TX_EN => ENET0_TX_EN,
     HEX0 => HEX0,
     LEDR => LEDR,
     SW => SW
 );
 
+CLOCK_50 <= clock;
+ENET0_TX_CLK <= clock;
 ENET0_RX_CLK <= clock;
 ENET0_RX_ER <= '0';
 
 init : PROCESS
 BEGIN                                                        
+    SW(0) <= '0';
+    wait for 5 ns;
     SW(0) <= '1';
 
     ENET0_RX_DV <= '1';

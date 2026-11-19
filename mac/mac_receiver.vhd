@@ -144,8 +144,8 @@ begin
                             if counter = payload_length - 1 then
                                 write_transaction <= '0';
 
-                                if payload_length < 46 then
-                                    counter <= 46 - counter - 2;
+                                if payload_length < 46 then -- 64 - 6 - 6 - 2 - 4 (minimum payload length - dest mac - source mac - ethertype/len - crc)
+                                    counter <= 46 - counter - 2; -- -2 => -1 because 0-45, another -1 because we're counting this 
                                     current_frame_state <= COUNTDOWN;
                                 else
                                     counter <= 0;
