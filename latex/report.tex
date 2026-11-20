@@ -1,5 +1,6 @@
 \documentclass[11pt,a4paper]{article}
 
+\usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{geometry}
 
@@ -14,10 +15,21 @@
 \usepackage{cite}
 
 \geometry{margin=2.5cm}
+\setlength{\emergencystretch}{2em}
+
+\lstset{
+    language=VHDL,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue!70!black},
+    commentstyle=\color{gray},
+    frame=single,
+    breaklines=true,
+    keepspaces=true
+}
 
 \title{
     \Huge\bfseries Term Assignment\\[0.5em]
-    \large\normalfont Multipurpose Ethernet MAC implementation in VHDL\\
+    \large\normalfont Ethernet MAC implementation in VHDL\\
     \vspace{1cm}
 }
 \author{
@@ -39,12 +51,14 @@
 
 \section{Introduction}
 \subsection{Remark on the usage of LLMs}
-The usage of LLMs during this project has been with strict restrictions.
-Firstly, it was of utmost importance to keep any and all material written by, designed by, and implemented by humans.
-Therefore, not so much as a single sentence or line of code present in this work, including this document, has been produced by an LLM.
+The usage of LLMs during this project has been with restrictions.
+Firstly, it was of utmost importance to keep any and all VHDL code written by, designed by, and implemented by humans.
+Therefore, not so much as a line of VHDL code present in this work has been produced by an LLM.
 
-There is, however, no denying that LLMs are useful as a "sparring partner" for tasks such as testing your understanding, learning syntax, or simply as a search engine for technical documentation.
-It has been used as such for this project.
+There is, however, no denying that LLMs are useful as a "sparring partner" for tasks such as testing understanding, learning syntax, or being used as a search engine for technical documentation, or drafting and summarizing text.
+It has been used as such for this project. All LLM-assisted work has been verified and proof-read by me, the author.
+
+The code that runs on the host-pc to send ethernet frames was written by an LLM. That is the extent of code written by LLMs in this project.
 
 \subsection{Project description}
 The goal of this project is to implement an 802.3 Ethernet MAC in VHDL, fit to run on an FPGA development board.
@@ -52,11 +66,11 @@ The MAC should, like any compliant 802.3 Ethernet MAC, be able to communicate wi
 The MAC must also be able to transmit the replies that such a subsystem might have.
 
 In the interest of saving time, only the MII interface will be implemented (which implies a max bandwidth of 100Mbit/s), and only full-duplex communication will be supported.
-This greatly reduces the complexity of the MAC, while still retaining broad compatability with modern hardware.
+This greatly reduces the complexity of the MAC, while still retaining broad compatibility with modern hardware.
 
 \subsection{The Ethernet stack}
 In order to be able to implement an Ethernet MAC, we need to understand its position and role in the Ethernet stack.
-The Ethernet stack on a single host consists of an Ethernet PHY, its associated physical port, and an Etnernet MAC.
+The Ethernet stack on a single host consists of an Ethernet PHY, its associated physical port, and an Ethernet MAC.
 Together they form a Network Interface Controller (NIC).
 \begin{figure}[htbp]
     \centering
@@ -71,14 +85,14 @@ The link is an umbrella term meant to describe the control and sharing of physic
 The link has several properties, the most important of which, for our purposes, is the link bandwidth.
 On modern hardware it's common for the PHY to have autonegotiation capabilities, such that it can produce the best possible link between the two hosts, which will be the maximum bandwidth supported by both PHYs.
 
-For example, if PHY-A supports up-to 1000Mbit/s, but PHY-B only supports 100 Mbit/s, then the maximum bandwidth supported by both PHYs is 100Mbit/s.
+For example, if PHY-A supports up to 1000Mbit/s, but PHY-B only supports 100 Mbit/s, then the maximum bandwidth supported by both PHYs is 100Mbit/s.
 Configuring the link bandwidth on our PHY will be important, because different bandwidths use different interfaces between the PHY and the MAC.
 
 For the purposes of this project, we will not be studying the inner workings of the PHY.
 We will abstract it as a black box, and talk to it through the interfaces it expects.
 
 \subsubsection{The MAC}
-The Media Access Controller (MAC) is an essential part of the host Ethernet stack. It has several key responsabilities in the stack:
+The Media Access Controller (MAC) is an essential part of the host Ethernet stack~\cite{ieee8023}. It has several key responsibilities in the stack:
 \begin{itemize}
     \item Receive data from the PHY
     \item Discard unwanted frames
@@ -89,15 +103,27 @@ The Media Access Controller (MAC) is an essential part of the host Ethernet stac
     \item Collision detection (only relevant for half-duplex links)
     \item Provide an interface to the rest of the system
 \end{itemize}
-Each of these responsabilities (with the exception of collision detection), will have to be implemented in order to have a functional MAC.
+Each of these responsibilities (with the exception of collision detection), will have to be implemented in order to have a functional MAC~\cite{ieee8023}.
+As will be described in Sections~\ref{sec:rx_fsm} and~\ref{sec:tx_fsm}, the current revision covers most of this list, but CRC generation/verification is still missing.
 
 \subsection{Introduction to FPGAs}
+An FPGA (Field-Programmable Gate Array) is a semiconductor device whose function is not fixed at the time of manufacture.
+Instead, the chip contains a large array of configurable logic blocks, flip-flops, embedded memory blocks and I/O blocks, all connected by a programmable routing fabric~\cite{cycloneiv}.
+A configuration bitstream decides the function of each block and how the blocks are connected.
+The bitstream is loaded on power-up from a configuration device, or directly from a host PC through a JTAG cable such as the USB-Blaster found on the DE2-115 board~\cite{terasic_de2}.
 
+The main advantage of an FPGA over an application-specific integrated circuit (ASIC) is that the hardware can be changed simply by recompiling the design.
+This makes iteration cheap and removes the non-recurring engineering cost of fabrication.
+The trade-off is a lower maximum clock frequency and a higher per-unit cost than an equivalent ASIC.
+
+The device on the board is an Altera/Intel Cyclone IV E, part number EP4CE115F29C7~\cite{terasic_de2}.
+According to the fit report it contains 114\,480 logic elements, 3\,981\,312 memory bits, 4 PLLs and 529 user pins~\cite{cycloneiv,quartus}.
+This design uses none of the PLLs: the 50\,MHz board clock drives the internal logic directly, and the two MII clocks are supplied by the PHY.
 
 \subsection{DE2-115 Development Board}
 The target platform is the DE2-115 development board. The main attraction of the DE2-115 board is the Altera Cyclone IV FPGA.
 It also has a plethora of useful connectors, and peripherals.
-Some of the peripherals the board includes are: SRAM, SDRAM, two RJ45 ports, USB 2.0 host and device ports, VGA, and a range of input switches and buttons, as well as some simple LEDs.
+Some of the peripherals the board includes are: SRAM, SDRAM, two RJ45 ports, USB 2.0 host and device ports, VGA, and a range of input switches and buttons, as well as some simple LEDs~\cite{terasic_de2}.
 
 For our purposes, the input switches and buttons, as well as the RJ45 ports and the Ethernet PHYs will be most useful.
 Towards the end of the project, we'll be connecting the Ethernet MAC to a multiplexer to control some of these peripherals, in order to demonstrate the functionality of the MAC. 
@@ -121,58 +147,298 @@ These gates run in parallel, unless specifically constructed such that they adva
 There are many HDLs in use today. For this project, we will use the HDL known as VHDL.
 
 \subsection{VHDL}
-VHDL is an IEEE standardized HDL. 
+VHDL (VHSIC Hardware Description Language) is an IEEE standardised HDL~\cite{ieee1076}.
+A design is split into an \emph{entity}, which describes the interface, and one or more \emph{architectures}, which describe the behaviour or structure.
+Unlike the statements of a software program, the statements of an architecture are concurrent by default: they describe a netlist that exists at all times.
+Sequential statements are placed inside \texttt{process} blocks, which are sensitive to signals and are synthesised as registers or combinational logic depending on how they are written.
+
+VHDL is strongly typed. The \texttt{std\_logic} type from \texttt{ieee.std\_logic\_1164} has nine values, of which \texttt{'0'}, \texttt{'1'} and the don't-care value \texttt{'-'} are the ones relevant to synthesis; arithmetic is done with \texttt{ieee.numeric\_std} rather than the older \texttt{std\_logic\_arith}~\cite{ieee1076}.
+Generics allow one entity to be parameterised, which is used both for the ring buffer (\texttt{DATA\_WIDTH} and \texttt{NUM\_DATA}) and for the seven-segment receiver (\texttt{ADDRESS}).
 
 \subsection{Project Scope}
+The scope of the implementation is deliberately narrow:
+\begin{itemize}
+    \item 100\,Mbit/s MII only, i.e. a 4-bit data path clocked at 25\,MHz by the PHY. Neither 10 nor 1000\,Mbit/s modes are handled.
+    \item Full-duplex operation only, so \texttt{RX\_COL} and \texttt{RX\_CRS} are not connected.
+    \item One Ethernet port (ENET0) and one MAC instance.
+    \item Frame parsing, padding to the 64-byte minimum, inter-frame gap and a simple relay/reply scheme.
+    \item Preamble and start-frame delimiter (SFD) generation on transmit.
+    \item Internal M9K ring buffers only; the board's external SRAM and SDRAM are not used.
+\end{itemize}
+
+The following are out of scope, or unfinished in the current revision:
+\begin{itemize}
+    \item The MDIO/MDC management interface. Both port declarations are commented out in \texttt{fpga.vhd} and \texttt{mac.vhd}, so the FPGA never configures the PHY or reads its link status. There was no time to investigate MDIO/MDC, so the PHY is instead configured from the host PC: the \texttt{ethtool} program is used to force the link to 100\,Mbit/s full duplex, while the board is set to MII mode by means of jumpers.
+    \item CRC-32 generation and verification. A lookup table is present in \texttt{crc32.vhd}, but the computation itself is not wired into either the receiver or the transmitter (Sections~\ref{sec:rx_fsm} and~\ref{sec:tx_fsm}).
+    \item Destination MAC filtering. The receiver parses the destination field but does not compare it against its own address.
+    \item Standard higher-layer protocols (IPv4, ARP, UDP, etc.). The scope of the project is simply to have a functioning Ethernet MAC, so these are not implemented.
+\end{itemize}
 
 \newpage
 
 \section{Project Outline}
 
 \subsection{High-Level Overview}
+Figure~\ref{fig:Ethernet Overview} showed the two communicating hosts. Inside one host, the data path implemented here is
+
+\begin{center}
+PHY $\leftrightarrow$ MAC $\leftrightarrow$ RX ring buffer $\leftrightarrow$ packet demultiplexer $\leftrightarrow$ subsystem\\
+\mbox{}\hfill$\updownarrow$\hfill\mbox{}\\
+PHY $\leftrightarrow$ MAC $\leftrightarrow$ TX ring buffer $\leftrightarrow$ Ethernet multiplexer $\leftrightarrow$ subsystem
+\end{center}
+
+On the receive path, the MAC converts the 4-bit MII nibble stream into bytes, locates the start of a frame, writes complete frames into a ring buffer and discards frames that are too long or flagged with \texttt{RX\_ER}. The \texttt{packet\_demux} block then reads the frame and offers its payload to whichever subsystem the first payload byte selects. On the transmit path, a subsystem raises one of 16 request lines; \texttt{eth\_mux} writes a destination address, the local source address and the payload into a second ring buffer, from which the MAC serialises it onto the MII TX lines.
+
+The top level, \texttt{fpga.vhd}, instantiates \texttt{mac}, \texttt{packet\_demux}, \texttt{eth\_mux} and one \texttt{seven\_segment} receiver.
+
 \subsection{Interfacing with the PHY}
+
 \subsubsection{MDIO}
+MDIO (Management Data Input/Output) together with MDC (Management Data Clock) is a two-wire serial bus defined by IEEE 802.3 for configuring and monitoring a PHY~\cite{ieee8023}. Through it a MAC can, for example, select the link speed and duplex mode, enable auto-negotiation and read back the link status.
+
+In this project the \texttt{MDC} and \texttt{MDIO} port declarations are commented out in both \texttt{fpga.vhd} and \texttt{mac.vhd}. Consequently no management frames are ever generated, and the PHY must already be operating at 100\,Mbit/s in full-duplex mode when the design starts. There was no time to investigate MDIO/MDC, so the link settings are instead forced from the host PC using the \texttt{ethtool} program, which sets the link speed to 100\,Mbit/s and full duplex; the board is set to MII mode by means of jumpers. The only PHY control signal that is connected is the active-low reset \texttt{ENET0\_RST\_N}, which is driven directly by switch \texttt{SW(0)} through the \texttt{n\_reset} net; the same switch drives \texttt{LEDR(0)} so that the reset state is visible.
+
 \subsubsection{MII}
+The Media Independent Interface used here is the 4-bit version. At 100\,Mbit/s the PHY supplies a 25\,MHz clock on both \texttt{RX\_CLK} and \texttt{TX\_CLK}, and one nibble is transferred per clock edge~\cite{ieee8023}.
+
+\begin{center}
+\begin{tabular}{lll}
+\hline
+Signal & Direction & Purpose \\
+\hline
+\texttt{RX\_CLK} & PHY $\to$ FPGA & receive clock, 25\,MHz \\
+\texttt{RX\_DATA[3:0]} & PHY $\to$ FPGA & received nibble \\
+\texttt{RX\_DV} & PHY $\to$ FPGA & receive data valid \\
+\texttt{RX\_ER} & PHY $\to$ FPGA & receive error \\
+\texttt{TX\_CLK} & PHY $\to$ FPGA & transmit clock, 25\,MHz \\
+\texttt{TX\_DATA[3:0]} & FPGA $\to$ PHY & transmit nibble \\
+\texttt{TX\_EN} & FPGA $\to$ PHY & transmit enable \\
+\texttt{TX\_ER} & FPGA $\to$ PHY & transmit error, tied to \texttt{'0'} \\
+\hline
+\end{tabular}
+\end{center}
+
+The least significant nibble of each byte is transferred first. This is visible in the receiver, where \texttt{RX\_DATA} is first stored in the low nibble of \texttt{current\_byte} and then in the high nibble, and in the transmitter, which drives the low nibble of \texttt{TX\_DATA} before the high nibble. Since the MAC works on bytes internally, all nibble-to-byte and byte-to-nibble conversion happens at these two interfaces.
+
+The MII also defines the inter-frame gap: at least 12 byte times must pass between two frames~\cite{ieee8023}. In this design the transmitter counts 24 \texttt{TX\_CLK} cycles in its \texttt{IFG} state, corresponding to 12 byte times.
+
 \subsection{Parsing 802.3 Ethernet Frames}
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{lll}
+    \hline
+    Field & Size (bytes) & Handling in the receiver \\
+    \hline
+    Preamble & 7 & skipped by SFD detection \\
+    Start-frame delimiter & 1 & skipped (nibble \texttt{1101}) \\
+    Destination MAC & 6 & parsed, not filtered \\
+    Source MAC & 6 & parsed, forwarded by the demultiplexer \\
+    Length / Type & 2 & interpreted as length \\
+    Payload & 46--1500 & written to the RX ring buffer \\
+    Frame check sequence & 4 & consumed, not verified \\
+    \hline
+    \end{tabular}
+    \caption{The 802.3 MAC frame as seen by the receiver~\cite{ieee8023}}
+    \label{tab:frame}
+\end{table}
+
+The fields are summarised in Table~\ref{tab:frame}. The 64-byte minimum frame size is counted from the destination address through the FCS, which gives a minimum payload of 46 bytes~\cite{ieee8023}. The transmitter pads shorter frames in its \texttt{REST} state; the receiver compensates with a \texttt{COUNTDOWN} state so that the following four bytes are treated as the FCS.
+
+Frames with a length field greater than 1500 are flagged for discard~\cite{ieee8023}. In addition, the receiver flags a frame as corrupt whenever \texttt{RX\_ER} is asserted. As there is no CRC logic connected, the four FCS bytes are read but never compared with a locally computed value, so damaged frames are only detected through \texttt{RX\_ER} in the current revision.
+
 \subsection{Relaying Data}
+Complete frames are held in the receive ring buffer and made visible to the rest of the system through \texttt{buffer\_read\_available}, \texttt{buffer\_read\_en} and \texttt{buffer\_read\_data}. \texttt{packet\_demux.vhd} reads them on the 50\,MHz system clock and walks through the states \texttt{MAC\_DESTINATION}, \texttt{MAC\_SOURCE}, \texttt{PAYLOAD\_LENGTH}, \texttt{PACKET\_ADDR} and \texttt{PACKET\_BYTES}. It exposes the source and destination addresses separately and delivers the payload one byte at a time together with a \texttt{packet\_ready} strobe. The first byte of the payload is consumed as the 4-bit destination address and is not forwarded as data.
+
 \subsection{Layers above 802.3 Frames}
+No standard higher-layer protocol is decoded. The 2-byte field after the source address is treated as a payload length, and the first payload byte is used as a 4-bit address selecting one of 16 subsystems. This is therefore a small custom protocol layered directly on top of raw Ethernet frames rather than, for instance, IPv4. The C test frame in \texttt{mac/cpp/transmit.c} puts \texttt{0x0002} in the length field, so its two payload bytes, the address \texttt{0x01} and the data \texttt{0x49}, are padded up to the 46-byte minimum. Packets are ``routed'' to the intended subsystem by a simple packet-addressing demultiplexer which reads the first payload byte. This is deliberately kept very simple, since routing is not the main goal of the project.
+
 \subsection{Acting upon Received Data}
+The demonstration subsystem is \texttt{seven\_segment.vhd}, instantiated with \texttt{ADDRESS = "0000"} in \texttt{fpga.vhd}. When \texttt{packet\_address} matches this constant and \texttt{packet\_ready} is high, it stores \texttt{packet\_source} for later use and copies \texttt{packet\_data(6 downto 0)} to the \texttt{HEX0} output. It then asserts \texttt{request\_write} (which is \texttt{request\_0} at the top level) to ask for transmission time.
+
+Once \texttt{eth\_mux} acknowledges with \texttt{address\_writing = "0000"} and \texttt{is\_handling\_request = '1'}, the module enters its \texttt{PAYLOAD} state and supplies three bytes: \texttt{0x00}, \texttt{0x01} and \texttt{0xAA}, followed by \texttt{payload\_done}. The reply is addressed to the source MAC stored from the triggering frame, i.e. the sender receives a short reply to its own request.
+
+The seven-segment pins receive the raw 7-bit pattern from the payload rather than a decoded hexadecimal digit; this is intentional. Only \texttt{HEX0} is connected at the top level, and only \texttt{SW(0)} and \texttt{LEDR(0)} are used for reset and status.
 
 \newpage
 
 \section{Implementation}
 
 \subsection{Hardware Block Diagram}
+The design consists of the following modules:
+
+\begin{center}
+\begin{tabular}{ll}
+\hline
+File & Function \\
+\hline
+\texttt{fpga.vhd} & top level, connects PHY and all subsystems \\
+\texttt{mac.vhd} & wraps receiver and transmitter, defines the MAC address \\
+\texttt{mac\_receiver.vhd} & MII RX nibble handling and frame parsing \\
+\texttt{mac\_transmitter.vhd} & MII TX nibble handling, padding and IFG \\
+\texttt{ring\_buffer.vhd} & dual-clock ring buffer, instantiated twice \\
+\texttt{packet\_demux.vhd} & reads and parses frames from the RX buffer \\
+\texttt{eth\_mux.vhd} & arbitrates requests and writes frames to the TX buffer \\
+\texttt{seven\_segment.vhd} & example subsystem reacting to and replying to frames \\
+\texttt{crc32.vhd} & generated CRC-32 lookup table (currently unused) \\
+\hline
+\end{tabular}
+\end{center}
+
+The MAC address used as source address by \texttt{eth\_mux} is \texttt{11:22:33:44:55:66}, given as a generic in \texttt{fpga.vhd}. The same address is declared as a constant in \texttt{mac.vhd} and passed to the receiver, but the receiver does not use it in the current revision.
+
 \subsection{Clock Domains}
+There are three clocks in the design:
+\begin{itemize}
+    \item \texttt{CLOCK\_50}, the 50\,MHz board clock. It clocks \texttt{eth\_mux}, \texttt{packet\_demux}, \texttt{seven\_segment} and the read side of the receive ring buffer, as well as the write side of the transmit ring buffer.
+    \item \texttt{ENET0\_RX\_CLK}, supplied by the PHY at 25\,MHz. It clocks the receiver state machine and the write side of the receive ring buffer.
+    \item \texttt{ENET0\_TX\_CLK}, supplied by the PHY at 25\,MHz. It clocks the transmitter state machine and the read side of the transmit ring buffer.
+\end{itemize}
+
+No PLL is instantiated; the PHY clocks are used as they arrive. The clock domains are divided by the RAM: since the ring-buffer RAM is dual-port, with independent clocks on its two ports, this removes the need for other synchronisation primitives.
 
 \subsection{Memory Hierarchy}
+
 \subsubsection{Internal RAM}
+Both the receiver and the transmitter contain an instance of \texttt{async\_read\_write\_ring\_buffer}, with \texttt{DATA\_WIDTH = 8} and \texttt{NUM\_DATA = $2^{12}$} (4096 bytes). Each instance is inferred as a 32\,768-bit simple dual-port M9K memory, giving 65\,536 memory bits in total for the two buffers~\cite{cycloneiv,quartus}. The read and write ports use independent clocks and independent addresses, so a whole frame can be written at the PHY clock and read back at 50\,MHz.
+
+A transaction is the unit of commit: \texttt{write\_transaction} stays high while the bytes of one frame are written, and the buffer keeps \texttt{last\_good\_write\_addr} at the start of the frame. When the transaction ends, that pointer is either advanced to the current \texttt{write\_addr} or, if \texttt{write\_discard} is asserted, the write pointer is rolled back so that the incomplete frame is overwritten by the next one. \texttt{read\_available} is simply the inequality \texttt{last\_good\_write\_addr /= read\_addr}, so a frame becomes visible to the reader only after it has been completely written.
+
+The 4096-byte depth is comfortably larger than the maximum frame length of 1518 bytes from destination address through FCS~\cite{ieee8023}. No external SRAM or SDRAM is used.
+
 \subsubsection{Requesting access to the bus}
+\texttt{eth\_mux.vhd} is the only writer to the transmit ring buffer. It has 16 request inputs, \texttt{request\_0} through \texttt{request\_15}, which are scanned in increasing order in the \texttt{WAITING\_FOR\_REQUEST} state; the lowest-numbered active request wins, i.e. arbitration is fixed priority rather than round-robin. The chosen index is presented on \texttt{address\_writing} and \texttt{is\_handling\_request} is asserted.
+
+The writer then moves through \texttt{SMALL\_PAUSE}, \texttt{WRITING\_MAC\_DEST}, \texttt{WRITING\_MAC\_SOURCE}, \texttt{SMALL\_PAUSE\_TWO}, \texttt{WRITING\_PAYLOAD} and \texttt{RELEASE}. The first two of these states write the six destination bytes and the six bytes of the local MAC address. During \texttt{WRITING\_PAYLOAD}, \texttt{payload\_ready} tells the requesting subsystem to put one byte on \texttt{payload\_byte} per clock; \texttt{payload\_done} ends the frame and releases the bus. Only \texttt{request\_0} is actually driven at the top level; the remaining 15 inputs are tied to \texttt{'0'} in \texttt{fpga.vhd}.
 
 \subsection{Receiving}
+\label{sec:rx_fsm}
 \subsubsection{Receiver State Machine}
+The receiver uses two state machines clocked by \texttt{RX\_CLK}. The first one reassembles nibbles into bytes:
+
+\begin{lstlisting}
+type receive_state is (PREAMBLE_SFD, FIRST, SECOND);
+\end{lstlisting}
+
+In \texttt{PREAMBLE\_SFD} the receiver ignores everything until \texttt{RX\_DATA} equals \texttt{"1101"}, the last nibble of the start-frame delimiter \texttt{0xD5}. It then starts a write transaction and alternates between \texttt{FIRST} and \texttt{SECOND}, latching the low nibble and then the high nibble of each byte. \texttt{byte\_ready} pulses once per completed byte.
+
+The second state machine interprets those bytes:
+
+\begin{lstlisting}
+type frame_state is (MAC_DESTINATION, MAC_SOURCE, LEN,
+                     PAYLOAD, CRC, COUNTDOWN);
+\end{lstlisting}
+
+Six bytes are consumed for the destination address and six for the source address, followed by two bytes that are joined into \texttt{payload\_length}. The payload bytes are written to the ring buffer while \texttt{write\_enable = byte\_ready}. If the payload is shorter than 46 bytes, the \texttt{COUNTDOWN} state consumes the remaining padding bytes; otherwise the machine goes directly to \texttt{CRC}, which consumes four bytes. When \texttt{RX\_DV} falls, \texttt{soft\_reset} returns both machines to their initial states and ends the transaction. A low \texttt{n\_reset} additionally clears \texttt{connected\_mac\_address}.
+
+Two filtering signals are generated: \texttt{drop\_frame} is set when \texttt{payload\_length > 1500}, and \texttt{frame\_corrupt} mirrors \texttt{RX\_ER}. Their OR drives \texttt{write\_discard}, so such frames are rolled back in the ring buffer. There is no comparison between the received destination address and the MAC address; the parsed source address is likewise not exposed by the receiver itself, but by \texttt{packet\_demux}. The four FCS bytes are skipped without verification; there was no time to implement CRC checking in the current revision.
+
 \subsubsection{Handling Multiple Receivers}
+The RX ring buffer has a single read port, so only one block can consume frames at a time. \texttt{packet\_demux.vhd} is that consumer. It parses the frame header again on the 50\,MHz side, subtracts one from the length field for the address byte, and then emits \texttt{packet\_data} together with \texttt{packet\_ready} for each remaining byte. \texttt{packet\_address} holds the low four bits of the first payload byte, allowing up to 16 subsystems to be selected.
+
+Multiple logical receivers can be supported by instantiating several modules with different \texttt{ADDRESS} generics, each ignoring packets whose address does not match, as \texttt{seven\_segment.vhd} does for \texttt{"0000"}. Only one such module is present in the current top level. This is where the packet demultiplexer comes in: everything is fed into the RAM, and the demultiplexer reads the frames and forwards each one to the correct reader.
 
 \subsection{Transmitting}
+\label{sec:tx_fsm}
 \subsubsection{Transmitter State Machine}
+The transmitter is clocked by \texttt{TX\_CLK}. Its byte-level state machine is
+
+\begin{lstlisting}
+type tx_byte_state is (WAIT_FOR_READ, PREAMBLE, SFD, FIRST, SECOND,
+                       REST, CRC, IFG);
+\end{lstlisting}
+
+\texttt{read\_enable} is a continuous assignment: it is high in \texttt{SFD} and \texttt{SECOND}, and low in all other states. \texttt{WAIT\_FOR\_READ} waits for a frame to become available, resets the frame counter and moves to \texttt{PREAMBLE}, where the transmitter drives alternating \texttt{0101} preamble nibbles with \texttt{TX\_EN} asserted. \texttt{SFD} drives the \texttt{1101} delimiter before entering \texttt{FIRST}, which latches the first byte from \texttt{read\_data} and sends its low nibble. \texttt{SECOND} sends the high nibble and re-asserts \texttt{read\_enable}, so the next byte is available by the following \texttt{FIRST} cycle. When the payload is shorter than 46 bytes, \texttt{REST} emits zero nibbles until the minimum length is reached. After the frame, \texttt{CRC} keeps \texttt{TX\_EN} asserted for eight clock cycles and \texttt{IFG} de-asserts it for 24 cycles before the machine returns to \texttt{WAIT\_FOR\_READ}. \texttt{TX\_ER} is permanently tied to \texttt{'0'}.
+
+The frame-level machine \texttt{tx\_frame\_state} has the states \texttt{MAC\_DEST}, \texttt{MAC\_SOURCE}, \texttt{PAYLOAD\_LEN} and \texttt{PAYLOAD}. It counts the header bytes, latches the 16-bit length and counts down the payload. Writes to the ring buffer are expected to contain exactly the bytes that go on the wire, starting at the destination address.
+
+The main remaining gap in this state machine is the missing CRC. The file \texttt{crc32.vhd} contains a 256-entry lookup table generated by \texttt{mac/cpp/crc32.cc}, but there was no time to implement the CRC computation and wire it into the receiver and transmitter. In the \texttt{CRC} state the transmitter merely waits eight cycles while \texttt{TX\_DATA} holds its previous value, so no frame check sequence bytes are emitted. The receiver correspondingly skips four bytes without checking them. A compliant implementation would compute CRC-32 over the destination address through the payload, append the four bytes in the required order on transmit and compare them on receive.
+
+The preamble and start-frame delimiter are generated by the RTL itself: alternating \texttt{0101} nibbles are followed by the \texttt{1101} nibble before the destination address is driven, so the PHY is not relied upon to insert them. The missing FCS still means that frames produced by the current transmitter are not guaranteed to be accepted by an off-the-shelf Ethernet peer; this is consistent with the hardware test in Section~\ref{sec:hw_test}, where the reply was seen on the TX lines but was apparently ignored by the host.
+
 \subsubsection{Handling Multiple Transmitters}
+Several subsystems can request transmission by asserting their own request line into \texttt{eth\_mux}. Since the multiplexer is the only writer to the TX ring buffer, requests are serialised: while \texttt{is\_handling\_request} is high, a new request is not accepted, and the frame currently being written is committed as one transaction with \texttt{write\_transaction}. Arbitration is fixed priority by request index, so a busy low-numbered subsystem can starve the others. This choice was made to save time; other possible implementations could be round-robin or similar.
 
 \newpage
 
 \section{Testing and Verification}
 \subsection{Testing Procedure}
+The design was checked in four steps. First, the VHDL was compiled and simulated at RTL level with Questa~\cite{questa}. Second, the project was analysed, synthesised and fitted with Quartus Prime~\cite{quartus}, and a resource and timing report was produced. Third, the compiled design was run on the DE2-115 and internal signals, including the transmit lines, were observed with SignalTap. Finally, raw Ethernet frames were sent from a host computer to exercise the receive path on real hardware.
+
 \subsection{Questa Simulation}
+Questa ran an RTL VHDL simulation; the flow completed successfully~\cite{questa}. The generated macro in the Questa simulation directory compiles the receiver, transmitter, ring buffer, multiplexer, demultiplexer, seven-segment module, MAC and top level into a work library. The stimulus is provided by \texttt{fpga.vht}, which instantiates the \texttt{fpga} top level as \texttt{fpga\_vhd\_tst}; this is also the instance path used by the wave script \texttt{wave.do}, which adds the receiver's clocks, state machines, byte assembly, error flags and ring-buffer contents.
+
+The testbench generates a 50\,MHz system clock and a 25\,MHz clock that drives both MII clock inputs. It holds \texttt{RX\_ER} low, releases the reset by taking \texttt{SW(0)} high after one 25\,MHz period, and then feeds two identical frames onto the RX lines with a short gap between them. Each frame contains seven preamble bytes followed by the SFD, the destination address \texttt{11:22:33:44:55:66}, a source address, the length \texttt{0x0002}, the address byte \texttt{0x00}, the data byte \texttt{0x7F}, a placeholder FCS and zero padding up to the 46-byte minimum payload. The destination address matches the constant in \texttt{mac.vhd}, and the address byte selects the seven-segment subsystem, so the same receive-and-reply path as in the hardware test is exercised.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\linewidth]{questa_sim.png}
+    \caption{Questa simulation waveforms for the receive-and-reply path}
+    \label{fig:questa_sim}
+\end{figure}
+
 \subsection{SignalTap}
+SignalTap was used to verify the design on the FPGA. The board was connected to the host computer, the trigger was placed on \texttt{RX\_DV}, and the resulting waveforms were inspected in the SignalTap Logic Analyzer~\cite{quartus}. This allowed the MII receive signals and the internal state machines to be observed when a frame arrived. The transmit side was also observed in SignalTap: \texttt{TX\_EN} and \texttt{TX\_DATA} showed the MAC driving a reply onto the MII TX lines after a frame had been received.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\linewidth]{signaltap_rx.png}
+    \caption{SignalTap capture of the MII receive signals}
+    \label{fig:signaltap_rx}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\linewidth]{signaltap_tx.png}
+    \caption{SignalTap capture of the MII transmit signals}
+    \label{fig:signaltap_tx}
+\end{figure}
+
 \subsection{Testing on Real Hardware}
+\label{sec:hw_test}
 \subsubsection{Testing with a Computer}
+Before testing, the host network interface is configured with the \texttt{ethtool} program~\cite{ethtool} to force the link to 100\,Mbit/s full duplex, so that the PHY operates in the mode expected by the MAC. The program \texttt{mac/cpp/transmit.c} opens a raw \texttt{AF\_PACKET} socket on Linux, binds it to \texttt{eth0} and sends a 16-byte Ethernet frame. The destination address is \texttt{11:22:33:44:55:66}, matching the constant in \texttt{mac.vhd}; the source address is \texttt{6c:6e:07:0e:a6:c1}; the length field is \texttt{0x0002}; and the payload is \texttt{0x01}, \texttt{0x49}. The companion file \texttt{mac/cpp/crc32.cc} is a small C++ program that generates the CRC-32 lookup table printed into \texttt{crc32.vhd}.
+
+The frame is short enough that the receiver's padding/countdown path is exercised. The reply from \texttt{seven\_segment.vhd} was observed in SignalTap on the MII TX lines, so the MAC does drive a response after a received frame. However, since the transmitter does not append a frame check sequence, the host's Ethernet stack most likely discards the response. The available driver does not allow CRC checking to be disabled, so this could not be verified further.
 
 \newpage
 
 \section{Conclusion}
+Overall the project is a moderate success. The receiver is the strongest part of the design: it converts the MII nibble stream into bytes, detects the start of a frame, parses the header, handles short frames through the padding/countdown path and commits complete frames atomically into the receive ring buffer. It can receive multiple frames in succession without issue. Together with the packet demultiplexer, the request multiplexer and the demonstration subsystem, this gives a working receive-and-reply path, and the transmitter generates the preamble, SFD, inter-frame gap and minimum-length padding. The design was simulated, fitted on the DE2-115 and exercised with real raw Ethernet frames; SignalTap captures confirm activity on both the receive and transmit sides.
+
+The transmit side is nevertheless the reason the project cannot be considered completely successful. No frame check sequence is appended to outgoing frames, and received frames are not checked against a computed CRC either. The reply was observed on the MII TX lines, but the host's Ethernet stack most likely discards it, so the transmitted frame was never verified end-to-end. The lack of verification on the transmitting side is unfortunate: it means the MAC is not yet a fully compliant 802.3 implementation.
+
+Several other shortcomings remain. Destination MAC filtering is absent, so the receiver accepts frames intended for other hosts. The MDIO/MDC management interface was not implemented, leaving the PHY to be configured from the host with \texttt{ethtool} rather than by the FPGA. The design is limited to a single 100\,Mbit/s full-duplex port, higher-layer protocols such as IPv4 and ARP are not decoded, and the 4-bit subsystem address restricts the design to at most 16 receivers. Arbitration between requests is fixed-priority, which can starve lower-priority subsystems. Only the seven-segment demonstration subsystem was implemented: a second receiver that would display received data on the LCD screen was planned, but there was no time to implement it because of the time constraints.
+
+The code quality and readability could also be better. Some signal and state names are not self-explanatory, comments are sparse in places, and the flow through the state machines is not always easy to follow, which made debugging and changes more time-consuming than necessary. A cleanup pass with more consistent naming, a clearer structure and additional comments would make the design easier to review, verify and extend.
+
+The most valuable improvement would be to complete the CRC-32 work: use the table already generated in \texttt{crc32.vhd} to append the FCS on transmit and to verify it on receive. That would allow the reply to be accepted by a normal Ethernet peer and make the hardware test conclusive. Destination address filtering and an MDIO/MDC controller would then make the MAC more self-contained and robust. Beyond that, support for other link speeds, round-robin request arbitration and a wider subsystem address would make the design more generally useful, and a self-checking testbench would give stronger evidence that repeated frames are handled correctly.
 
 \newpage
 
 \section*{Reference}
 \addcontentsline{toc}{section}{Reference}
+
+\begin{thebibliography}{9}
+    \bibitem{ethtool}
+    Linux man-pages project, \emph{ethtool(8)}. \url{https://www.man7.org/linux/man-pages/man8/ethtool.8.html}
+
+    \bibitem{ieee8023}
+    IEEE Std 802.3-2022, \emph{IEEE Standard for Ethernet}, IEEE, 2022. \url{https://doi.org/10.1109/ieeestd.2022.9844436}
+
+    \bibitem{ieee1076}
+    IEEE Std 1076-2019, \emph{IEEE Standard VHDL Language Reference Manual}, IEEE, 2020. \url{https://doi.org/10.1109/ieeestd.2019.8938196}
+
+    \bibitem{terasic_de2}
+    Terasic Technologies, \emph{DE2-115 Development and Education Board User Manual}. \url{http://www.terasic.com.tw/attachment/archive/502/DE2_115_User_manual.pdf}
+
+    \bibitem{cycloneiv}
+    Intel Corporation, \emph{Cyclone IV Device Handbook}. \url{https://www.intel.com/content/dam/www/programmable/us/en/pdfs/literature/hb/cyclone-iv/cyiv-5v1.pdf}
+
+    \bibitem{quartus}
+    Intel Corporation, \emph{Quartus Prime Standard Edition User Guide}. \url{https://docs.altera.com/r/docs/683475/current}
+
+    \bibitem{questa}
+    Intel Corporation, \emph{Questa-Altera FPGA Edition Simulation User Guide}. \url{https://docs.altera.com/r/docs/730191/current}
+\end{thebibliography}
 
 \end{document}
