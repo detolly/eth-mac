@@ -8,8 +8,8 @@ ARCHITECTURE fpga_arch OF fpga_vhd_tst IS
 -- constants                                                 
 -- signals 
 
-signal clock : std_logic := '0';
-constant period : time := 40ns;
+constant period_25 : time := 40ns;
+constant period_50 : time := 20ns;
 
 type nibble_array is array (natural range <>) of std_logic_vector(3 downto 0);
 
@@ -26,19 +26,22 @@ constant real_data : nibble_array := (
     "0101", "0101",
     "0110", "0110",
 
-    "0011", "0110",
-    "0111", "0110",
-    "0111", "0000",
-    "1110", "0000",
-    "0110", "0101",
-    "0001", "0011",
+    "1111", "1111",
+    "1111", "0000",
+    "1111", "0000",
+    "1111", "0000",
+    "1111", "0000",
+    "1111", "1111",
 
     "0000", "0000",
     "0010", "0000",
 
-    "0001", "0000",
+    "0000", "0000",
     "1111", "0111",
 
+    "0000", "0000",
+    "0000", "0000",
+    "0000", "0000",
     "0000", "0000",
     "0000", "0000",
     "0000", "0000",
@@ -102,6 +105,7 @@ signal ENET0_TX_ER   : std_logic;
 signal ENET0_TX_EN   : std_logic;
 
 signal CLOCK_50 : std_logic;
+signal CLOCK_25 : std_logic;
 
 BEGIN
     i1 : entity work.fpga
@@ -121,32 +125,33 @@ BEGIN
     SW => SW
 );
 
-CLOCK_50 <= clock;
-ENET0_TX_CLK <= clock;
-ENET0_RX_CLK <= clock;
+ENET0_TX_CLK <= CLOCK_25;
+ENET0_RX_CLK <= CLOCK_25;
+
 ENET0_RX_ER <= '0';
 
 init : PROCESS
 BEGIN                                                        
     SW(0) <= '0';
-    wait for 5 ns;
+    wait for period_25;
     SW(0) <= '1';
+    wait for period_25;
 
     ENET0_RX_DV <= '1';
     for i in real_data'range loop
         -- ENET0_RX_DATA <= data1(i);
         ENET0_RX_DATA <= real_data(i);
-        wait until clock = '0';
+        wait until CLOCK_25 = '0';
     end loop;
     ENET0_RX_DV <= '0';
 
-    wait for 200 ns;
+    wait for period_50 * 2;
 
     ENET0_RX_DV <= '1';
     for i in real_data'range loop
         -- ENET0_RX_DATA <= data1(i);
         ENET0_RX_DATA <= real_data(i);
-        wait until clock = '0';
+        wait until CLOCK_25 = '0';
     end loop;
     ENET0_RX_DV <= '0';
 
@@ -156,8 +161,17 @@ END PROCESS init;
 clocker: process
 begin
     loop
-        clock <= '0', '1' after period / 2;
-        wait for period;
+        CLOCK_50 <= '0', '1' after period_50 / 2;
+        wait for period_50;
+    end loop;
+wait;
+end process;
+
+clocker50: process
+begin
+    loop
+        CLOCK_25 <= '0', '1' after period_25 / 2;
+        wait for period_25;
     end loop;
 wait;
 end process;

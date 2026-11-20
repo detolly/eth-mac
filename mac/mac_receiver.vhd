@@ -4,7 +4,8 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity mac_receiver is
-    port(n_reset : in std_logic;
+    port(n_reset : in  std_logic;
+         clk     : in  std_logic;
 
          -- RX_COL  : in  std_logic;
          -- RX_CRS  : in  std_logic;
@@ -13,7 +14,6 @@ entity mac_receiver is
          RX_DV   : in  std_logic;
          RX_ER   : in  std_logic;
 
-         buffer_read_clk          : in  std_logic;
          buffer_read_data         : out std_logic_vector(7 downto 0);
          buffer_read_en           : in  std_logic;
          buffer_read_available    : out std_logic;
@@ -52,7 +52,7 @@ begin
                     NUM_DATA   => 2**12)
         port map (n_reset        => n_reset,
 
-                  read_clk          => buffer_read_clk,
+                  read_clk          => clk,
                   read_en           => buffer_read_en,
                   read_data         => buffer_read_data,
                   read_available    => buffer_read_available,

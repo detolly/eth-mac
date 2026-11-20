@@ -32,7 +32,6 @@ end entity;
 architecture rtl of fpga is
     signal n_reset : std_logic;
     
-    signal read_clock     : std_logic := '0';
     signal read_available : std_logic := '0';
     signal read_enable    : std_logic := '0';
     signal read_data      : std_logic_vector(7 downto 0) := (others => '0');
@@ -44,7 +43,6 @@ architecture rtl of fpga is
     signal packet_source : std_logic_vector(47 downto 0);
     signal packet_dest   : std_logic_vector(47 downto 0);
     
-    signal write_clk         : std_logic;
     signal write_en          : std_logic;
     signal write_data        : std_logic_vector(7 downto 0);
     signal write_transaction : std_logic;
@@ -73,18 +71,16 @@ architecture rtl of fpga is
     signal payload_byte : std_logic_vector(7 downto 0);
     signal payload_ready : std_logic;
     signal payload_done : std_logic;
+    signal is_handling_request : std_logic;
 begin
     n_reset <= SW(0);
     LEDR(0) <= n_reset;
-
-    read_clock <= ENET0_RX_CLK;
-    write_clk <= CLOCK_50;
 
     ss: entity work.seven_segment
         generic map(ADDRESS => "0000")
         port map(n_reset        => n_reset,
 
-                 read_clock     => read_clock,
+                 clk     => CLOCK_50,
 
                  packet_address => packet_address,
                  packet_ready   => packet_ready,
@@ -92,18 +88,20 @@ begin
                  packet_source  => packet_source,
                  packet_dest    => packet_dest,
                  
-                 request_write   => request_0,
-                 address_writing => address_writing,
-                 payload_byte    => payload_byte,
-                 payload_ready   => payload_ready,
-                 payload_done    => payload_done,
-                 destination_mac => destination_mac,
+                 is_handling_request => is_handling_request,
+                 request_write       => request_0,
+                 address_writing     => address_writing,
+                 payload_byte        => payload_byte,
+                 payload_ready       => payload_ready,
+                 payload_done        => payload_done,
+                 destination_mac     => destination_mac,
 
                  hex            => HEX0);
 
     mux: entity work.eth_mux
         generic map(mac_address => x"00FF00FF00FF")
         port map(n_reset    => n_reset,
+                 clk        => CLOCK_50,
          
                  request_0  => request_0,
                  request_1  => request_1,
@@ -122,13 +120,14 @@ begin
                  request_14 => request_14,
                  request_15 => request_15,
                  address_writing => address_writing,
+                 
+                 is_handling_request => is_handling_request,
 
                  destination_mac    => destination_mac,
                  payload_byte       => payload_byte,
                  payload_ready      => payload_ready,
                  payload_done       => payload_done,
 
-                 write_clk          => write_clk,
                  write_data         => write_data,
                  write_enable       => write_en,
                  write_transaction  => write_transaction,
@@ -136,8 +135,8 @@ begin
 
     demux: entity work.packet_demux
         port map(n_reset         => n_reset,
+                 clk             => CLOCK_50,
 
-                 read_clk        => read_clock,
                  read_en         => read_enable,
                  read_data       => read_data,
                  read_available  => read_available,
@@ -150,6 +149,7 @@ begin
 
     mac0: entity work.mac
         port map (n_reset => n_reset,
+                  clk     => CLOCK_50,
                   RST_N   => ENET0_RST_N,
 
                   -- MDC     : out   std_logic;
@@ -168,12 +168,10 @@ begin
                   TX_EN   => ENET0_TX_EN,
                   TX_ER   => ENET0_TX_ER,
 
-                  buffer_read_clk       => read_clock,
                   buffer_read_data      => read_data,
                   buffer_read_en        => read_enable,
                   buffer_read_available => read_available,
                   
-                  buffer_write_clk         => write_clk,
                   buffer_write_en          => write_en,
                   buffer_write_data        => write_data,
                   buffer_write_transaction => write_transaction,

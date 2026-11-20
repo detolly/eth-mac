@@ -5,8 +5,8 @@ use ieee.numeric_std.all;
 
 entity packet_demux is
     port(n_reset           : in  std_logic;
+         clk               : in  std_logic;
 
-         read_clk          : in  std_logic;
          read_en           : out std_logic;
          read_data         : in  std_logic_vector(7 downto 0);
          read_available    : in  std_logic;
@@ -34,7 +34,7 @@ begin
     packet_source <= source;
     packet_dest   <= dest;
 
-    reader: process(read_clk)
+    reader: process(clk)
         procedure reset is
         begin
             packet_ready <= '0';
@@ -47,7 +47,7 @@ begin
             read_en <= '0';
         end procedure;
     begin
-        if rising_edge(read_clk) then
+        if rising_edge(clk) then
             if n_reset = '0' then
                 reset;
             else

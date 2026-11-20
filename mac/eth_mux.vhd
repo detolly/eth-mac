@@ -6,6 +6,9 @@ use ieee.numeric_std.all;
 entity eth_mux is
     generic(mac_address : std_logic_vector(47 downto 0));
     port(n_reset : in std_logic;
+         clk     : in std_logic;
+         
+         is_handling_request : out std_logic;
          
          request_0  : in std_logic;
          request_1  : in std_logic;
@@ -30,7 +33,6 @@ entity eth_mux is
          payload_ready      : out std_logic;
          payload_done       : in  std_logic;
 
-         write_clk          : in  std_logic;
          write_data         : out std_logic_vector(7 downto 0);
          write_enable       : out std_logic;
          write_transaction  : out std_logic;
@@ -38,19 +40,18 @@ entity eth_mux is
 end entity;
 
 architecture rtl of eth_mux is
-    type writer_state is (WAITING_FOR_REQUEST, WRITING_MAC_DEST, WRITING_MAC_SOURCE, WRITING_PAYLOAD, RELEASE);
+    type writer_state is (WAITING_FOR_REQUEST, SMALL_PAUSE, WRITING_MAC_DEST, WRITING_MAC_SOURCE, SMALL_PAUSE_TWO, WRITING_PAYLOAD, RELEASE);
     signal state : writer_state := WAITING_FOR_REQUEST;
     
     signal counter : integer range 0 to 2**16-1 := 0;
     
-    signal inferred_payload_length : std_logic_vector(15 downto 0) := (others => '0');
     signal need_rest_count : std_logic := '0';
 begin
 
-    writer: process(write_clk)
+    writer: process(clk)
         variable found_request : std_logic := '0';
     begin
-        if rising_edge(write_clk) then
+        if rising_edge(clk) then
             if n_reset = '0' then
                 state <= WAITING_FOR_REQUEST;
                 address_writing <= (others => '0');
@@ -59,8 +60,8 @@ begin
                 write_transaction <= '0';
                 write_discard <= '0';
                 write_data <= (others => '0');
-                inferred_payload_length <= (others => '0');
                 need_rest_count <= '0';
+                is_handling_request <= '0';
                 payload_ready <= '0';
             else
                 case state is
@@ -84,14 +85,18 @@ begin
                     end if;
 
                     if found_request = '1' then
-                        state <= WRITING_MAC_DEST;
-                        write_enable <= '1';
-                        write_transaction <= '1';
-                        write_discard <= '0';
+                        is_handling_request <= '1';
+                        state <= SMALL_PAUSE;
                         found_request := '0';
                         counter <= 0;
                     end if;
+                when SMALL_PAUSE =>
+                    state <= WRITING_MAC_DEST;
                 when WRITING_MAC_DEST =>
+                    write_enable <= '1';
+                    write_transaction <= '1';
+                    write_discard <= '0';
+                    
                     counter <= counter + 1;
                     if    counter = 0 then write_data <= destination_mac(47 downto 40);
                     elsif counter = 1 then write_data <= destination_mac(39 downto 32);
@@ -104,6 +109,10 @@ begin
                         counter <= 0;
                     end if;
                 when WRITING_MAC_SOURCE =>
+                    write_enable <= '1';
+                    write_transaction <= '1';
+                    write_discard <= '0';
+                    
                     counter <= counter + 1;
                     if    counter = 0 then write_data <= mac_address(47 downto 40);
                     elsif counter = 1 then write_data <= mac_address(39 downto 32);
@@ -112,19 +121,36 @@ begin
                     elsif counter = 4 then write_data <= mac_address(15 downto 8);
                     elsif counter = 5 then 
                         write_data <= mac_address(7 downto 0);
-                        state <= WRITING_PAYLOAD;
+                        state <= SMALL_PAUSE_TWO;
                         counter <= 0;
                         payload_ready <= '1';
                     end if;
+                when SMALL_PAUSE_TWO =>
+                    write_enable <= '0';
+                    write_transaction <= '1';
+                    write_discard <= '0';
+                    payload_ready <= '1';
+                    
+                    write_data <= (others => 'Z');
+                    
+                    state <= WRITING_PAYLOAD;
                 when WRITING_PAYLOAD =>
+                    write_enable <= '1';
+                    write_transaction <= '1';
+                    write_discard <= '0';
+
                     write_data <= payload_byte;
+
                     if payload_done = '1' then
                         state <= RELEASE;
-                        write_enable <= '0';
-                        write_transaction <= '0';
                     end if;
                 when RELEASE =>
+                    write_enable <= '0';
+                    write_transaction <= '0';
+                    write_discard <= '0';
                     payload_ready <= '0';
+                    
+                    is_handling_request <= '0';
                     counter <= 0;
                     address_writing <= (others => '0');
                     state <= WAITING_FOR_REQUEST;

@@ -5,6 +5,7 @@ use ieee.numeric_std.all;
 
 entity mac is
     port(n_reset : in std_logic;
+         clk     : in std_logic;
 
          -- MDC     : out   std_logic;
          -- MDIO    : inout std_logic;
@@ -23,12 +24,10 @@ entity mac is
          TX_EN   : out std_logic;
          TX_ER   : out std_logic;
 
-         buffer_read_clk          : in  std_logic;
          buffer_read_data         : out std_logic_vector(7 downto 0);
          buffer_read_en           : in  std_logic;
          buffer_read_available    : out std_logic;
          
-         buffer_write_clk         : in  std_logic;
          buffer_write_en          : in  std_logic;
          buffer_write_data        : in  std_logic_vector(7 downto 0);
          buffer_write_transaction : in  std_logic;
@@ -43,13 +42,13 @@ begin
     
     transmitter: entity work.mac_transmitter
         port map(n_reset               => n_reset,
-    
+                 clk                   => clk,
+                 
                  TX_CLK                => TX_CLK,
                  TX_DATA               => TX_DATA,
                  TX_EN                 => TX_EN,
                  TX_ER                 => TX_ER,
-                 
-                 write_clk             => buffer_write_clk,
+
                  write_en              => buffer_write_en,
                  write_data            => buffer_write_data,
                  write_transaction     => buffer_write_transaction,
@@ -57,13 +56,13 @@ begin
 
     receiver: entity work.mac_receiver
         port map(n_reset               => n_reset,
+                 clk                   => clk,
 
                  RX_CLK                => RX_CLK,
                  RX_DATA               => RX_DATA,
                  RX_DV                 => RX_DV,
                  RX_ER                 => RX_ER,
 
-                 buffer_read_clk       => buffer_read_clk,
                  buffer_read_en        => buffer_read_en,
                  buffer_read_data      => buffer_read_data,
                  buffer_read_available => buffer_read_available,
