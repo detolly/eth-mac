@@ -2,7 +2,9 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage{geometry}
+
 \usepackage{graphicx}
+\graphicspath{ {./images/} } 
 
 \usepackage{listings}
 \usepackage{xcolor}
@@ -45,32 +47,82 @@ There is, however, no denying that LLMs are useful as a "sparring partner" for t
 It has been used as such for this project.
 
 \subsection{Project description}
-The goal of this project is to implement an 802.3 Ethernet MAC in Hardware Description Language fit to run on an FPGA development board.
-The MAC should, like any compliant 802.3 Ethernet MAC, be able to communicate with an Ethernet PHY through the MII and MDIO interfaces, be able to transmit, receive and parse 802.3 Ethernet frames, drop irrelevant or damaged frames, and should also be able to relay received data to another system that is able to act upon it.
-The MAC must also be able to transmit the replies that such a system might have.
+The goal of this project is to implement an 802.3 Ethernet MAC in VHDL, fit to run on an FPGA development board.
+The MAC should, like any compliant 802.3 Ethernet MAC, be able to communicate with an Ethernet PHY through the MII and MDIO interfaces, be able to transmit, receive, and parse 802.3 Ethernet frames, drop irrelevant or damaged frames, and should also be able to relay received data to another subsystem that is able to act upon it.
+The MAC must also be able to transmit the replies that such a subsystem might have.
 
-In the interest of saving time, only the MII interface will be implemented (which implies a max bandwidth of 100Mbit/s), and only full-duplex communication will be supported. This greatly reduces the complexity of the MAC, while still retaining broad compatability with modern hardware.
+In the interest of saving time, only the MII interface will be implemented (which implies a max bandwidth of 100Mbit/s), and only full-duplex communication will be supported.
+This greatly reduces the complexity of the MAC, while still retaining broad compatability with modern hardware.
 
 \subsection{The Ethernet stack}
 In order to be able to implement an Ethernet MAC, we need to understand its position and role in the Ethernet stack.
 The Ethernet stack on a single host consists of an Ethernet PHY, its associated physical port, and an Etnernet MAC.
-Together they form a NIC -- Network Interface Controller.
+Together they form a Network Interface Controller (NIC).
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\linewidth]{ethernet_diagram.png}
+    \caption{Ethernet components between two hosts}
+    \label{fig:Ethernet Overview}
+\end{figure}
+
 \subsubsection{The PHY}
 The role of the PHY is to create and manage a link between it and the PHY on the other side of the cable.
 The link is an umbrella term meant to describe the control and sharing of physical medium upon which data will be transmitted.
 The link has several properties, the most important of which, for our purposes, is the link bandwidth.
-On modern hardware it's common for the PHY to have autonegotiation capabilities, such that it can produce the best possible link between the two hosts.
+On modern hardware it's common for the PHY to have autonegotiation capabilities, such that it can produce the best possible link between the two hosts, which will be the maximum bandwidth supported by both PHYs.
 
-For example, if PHY-A supports 1000Mbit/s, but PHY-B only supports 100 Mbit/s, then the link bandwidth will be forced to the minimum supported by both PHYs, which is 100Mbit/s.
+For example, if PHY-A supports up-to 1000Mbit/s, but PHY-B only supports 100 Mbit/s, then the maximum bandwidth supported by both PHYs is 100Mbit/s.
 Configuring the link bandwidth on our PHY will be important, because different bandwidths use different interfaces between the PHY and the MAC.
 
 For the purposes of this project, we will not be studying the inner workings of the PHY.
 We will abstract it as a black box, and talk to it through the interfaces it expects.
+
 \subsubsection{The MAC}
+The Media Access Controller (MAC) is an essential part of the host Ethernet stack. It has several key responsabilities in the stack:
+\begin{itemize}
+    \item Receive data from the PHY
+    \item Discard unwanted frames
+    \item Enforce Inter-Frame Gap (IFG)
+    \item Generate preamble on transmit
+    \item Pad frames (minimum 64 bytes)
+    \item Verify Cyclic Redundancy Check (CRC) on receive, generate CRC on transmit
+    \item Collision detection (only relevant for half-duplex links)
+    \item Provide an interface to the rest of the system
+\end{itemize}
+Each of these responsabilities (with the exception of collision detection), will have to be implemented in order to have a functional MAC.
+
 \subsection{Introduction to FPGAs}
+
+
 \subsection{DE2-115 Development Board}
-The target platform is the DE2-115 development board, which has the additional hardware required to complete and test the project, such as two RJ45 ports and respective Ethernet PHYs. The board contains a 
-\subsection{VHDL and Hardware Description Languages}
+The target platform is the DE2-115 development board. The main attraction of the DE2-115 board is the Altera Cyclone IV FPGA.
+It also has a plethora of useful connectors, and peripherals.
+Some of the peripherals the board includes are: SRAM, SDRAM, two RJ45 ports, USB 2.0 host and device ports, VGA, and a range of input switches and buttons, as well as some simple LEDs.
+
+For our purposes, the input switches and buttons, as well as the RJ45 ports and the Ethernet PHYs will be most useful.
+Towards the end of the project, we'll be connecting the Ethernet MAC to a multiplexer to control some of these peripherals, in order to demonstrate the functionality of the MAC. 
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.75\linewidth]{DE2_115.jpg}
+    \caption{The DE2-115 Development Board}
+    \label{fig:DE2_115}
+\end{figure}
+
+\subsection{Hardware Description Languages}
+Designing and placing digital gates or even individual transistors by hand, is a tedious and time-consuming process.
+It's also prone to human failure and inefficiencies.
+For some digital-analog systems, such as ADCs, DACs, and RAM, this is required or even preferred due to being able to take advantage of symmetries and modularity.
+For pure digital systems, however, the behavior of the digital gates are assumed, and can therefore be abstracted through the use of programming languages known as Hardware Description Languages.
+
+Hardware Description Languages (HDLs) share some similarities with traditional programming languages used for constructing software, but they are in fact quite different.
+While software languages constructs a list of instructions, HDLs construct a network of digital gates.
+These gates run in parallel, unless specifically constructed such that they advance internal state synchronous with a clock.
+
+There are many HDLs in use today. For this project, we will use the HDL known as VHDL.
+
+\subsection{VHDL}
+VHDL is an IEEE standardized HDL. 
+
 \subsection{Project Scope}
 
 \newpage
@@ -95,8 +147,7 @@ The target platform is the DE2-115 development board, which has the additional h
 
 \subsection{Memory Hierarchy}
 \subsubsection{Internal RAM}
-\subsubsection{External SRAM}
-\subsubsection{Dividing the Bus}
+\subsubsection{Requesting access to the bus}
 
 \subsection{Receiving}
 \subsubsection{Receiver State Machine}
@@ -114,9 +165,6 @@ The target platform is the DE2-115 development board, which has the additional h
 \subsection{SignalTap}
 \subsection{Testing on Real Hardware}
 \subsubsection{Testing with a Computer}
-\subsubsection{FPGA with two MACs}
-\subsubsection{Multiple FPGAs}
-\subsubsection{Network of FPGAs}
 
 \newpage
 
