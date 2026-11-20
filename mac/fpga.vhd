@@ -4,7 +4,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity fpga is
-    port(SW            : in  std_logic_vector(0 downto 0);
+    port(SW            : in  std_logic_vector(1 downto 0);
          LEDR          : out std_logic_vector(0 downto 0);
          HEX0          : out std_logic_vector(6 downto 0);
 
@@ -25,7 +25,13 @@ entity fpga is
          ENET0_TX_CLK  : in  std_logic;
          ENET0_TX_DATA : out std_logic_vector(3 downto 0);
          ENET0_TX_EN   : out std_logic;
-         ENET0_TX_ER   : out std_logic
+         ENET0_TX_ER   : out std_logic;
+         
+         LCD_RS : out std_logic;
+         LCD_EN : out std_logic;
+         LCD_ON : out std_logic;
+         LCD_RW : out std_logic;
+         LCD_DATA : inout std_logic_vector(7 downto 0)
          );
 end entity;
 
@@ -97,6 +103,23 @@ begin
                  destination_mac     => destination_mac,
 
                  hex            => HEX0);
+
+    lcd: entity work.lcd
+        generic map(ADDRESS => "0001")
+        port map (clk => CLOCK_50,
+                  n_reset => n_reset,
+                  LCD_RS => LCD_RS,
+                  LCD_EN => LCD_EN,
+                  LCD_RW => LCD_RW,
+                  LCD_DATA => LCD_DATA,
+                  
+                  packet_address => packet_address,
+                  packet_ready   => packet_ready,
+                  packet_data    => packet_data,
+                  packet_source  => packet_source,
+                  packet_dest    => packet_dest,
+                  
+                  lcd_reset      => SW(1));
 
     mux: entity work.eth_mux
         generic map(mac_address => x"112233445566")
