@@ -29,7 +29,7 @@ architecture rtl of mac_transmitter is
     
     signal byte : std_logic_vector(7 downto 0);
     
-    type tx_byte_state is (WAIT_FOR_READ, FIRST, SECOND, REST, CRC, IFG);
+    type tx_byte_state is (WAIT_FOR_READ, PREAMBLE, SFD, FIRST, SECOND, REST, CRC, IFG);
     type tx_frame_state is (MAC_DEST, MAC_SOURCE, PAYLOAD_LEN, PAYLOAD);
     
     signal byte_state : tx_byte_state := WAIT_FOR_READ;
@@ -55,7 +55,7 @@ begin
                  write_data        => write_data,
                  write_discard     => write_discard);
 
-    read_enable <= '1' when byte_state = WAIT_FOR_READ or byte_state = SECOND else '0';
+    read_enable <= '1' when byte_state = SFD or byte_state = SECOND else '0';
 
     writer: process(TX_CLK)
         variable payload_length : integer range 0 to 2**16-1 := 0;
@@ -77,9 +77,21 @@ begin
                 case byte_state is
                 when WAIT_FOR_READ =>
                     if read_available = '1' then
-                        byte_state <= FIRST;
+                        byte_state <= PREAMBLE;
                         frame_counter <= 0;
                     end if;
+                when PREAMBLE =>
+                    TX_EN <= '1';
+                    counter <= counter + 1;
+                    TX_DATA <= "0101";
+                    if counter = 14 then
+                        byte_state <= SFD;
+                        counter <= 0;
+                    end if;
+                when SFD =>
+                    TX_EN <= '1';
+                    TX_DATA <= "1101";
+                    byte_state <= FIRST;
                 when FIRST =>
                     TX_EN <= '1';
 
@@ -119,7 +131,7 @@ begin
                     when PAYLOAD =>
                         if frame_counter = 0 then
                             if has_rest = '1' then
-                                frame_counter <= (45 - payload_length) + (45 - payload_length);
+                                frame_counter <= (45 - payload_length) + (45 - payload_length) + 2;
                                 byte_state <= REST;
                             else
                                 byte_state <= CRC;
@@ -137,10 +149,12 @@ begin
                         frame_counter <= frame_counter - 1;
                     end if;
                 when CRC =>
+                    TX_EN <= '1';
                     counter <= counter + 1;
                     if counter = 7 then
                         byte_state <= IFG;
                         counter <= 23;
+                        TX_EN <= '0';
                     end if;
                 when IFG =>
                     TX_EN <= '0';

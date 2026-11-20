@@ -99,7 +99,7 @@ begin
                  hex            => HEX0);
 
     mux: entity work.eth_mux
-        generic map(mac_address => x"00FF00FF00FF")
+        generic map(mac_address => x"112233445566")
         port map(n_reset    => n_reset,
                  clk        => CLOCK_50,
          
