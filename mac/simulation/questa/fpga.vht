@@ -155,7 +155,7 @@ BEGIN
     end loop;
     ENET0_RX_DV <= '0';
 
-    wait; 
+    wait for 50000 ns; 
 END PROCESS init;   
 
 clocker: process

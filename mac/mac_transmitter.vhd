@@ -20,7 +20,7 @@ end entity;
 
 architecture rtl of mac_transmitter is
     signal read_data      : std_logic_vector(7 downto 0) := (others => '0');
-    signal read_enable    : std_logic;
+    signal read_enable    : std_logic := '0';
     signal read_available : std_logic;
     
     signal counter : integer range 0 to 31 := 0;
@@ -29,7 +29,7 @@ architecture rtl of mac_transmitter is
     
     signal byte : std_logic_vector(7 downto 0);
     
-    type tx_byte_state is (WAIT_FOR_READ, SKIP_ONE_READ, FIRST, SECOND, REST, CRC, IFG);
+    type tx_byte_state is (WAIT_FOR_READ, FIRST, SECOND, REST, CRC, IFG);
     type tx_frame_state is (MAC_DEST, MAC_SOURCE, PAYLOAD_LEN, PAYLOAD);
     
     signal byte_state : tx_byte_state := WAIT_FOR_READ;
@@ -55,6 +55,8 @@ begin
                  write_data        => write_data,
                  write_discard     => write_discard);
 
+    read_enable <= '1' when byte_state = WAIT_FOR_READ or byte_state = SECOND else '0';
+
     writer: process(TX_CLK)
         variable payload_length : integer range 0 to 2**16-1 := 0;
         variable has_rest : std_logic := '0';
@@ -64,7 +66,6 @@ begin
                 byte_state <= WAIT_FOR_READ;
                 frame_state <= MAC_DEST;
                 counter <= 0;
-                read_enable <= '0';
                 byte <= (others => '0');
                 frame_counter <= 0;
                 inferred_payload_length <= (others => '0');
@@ -76,24 +77,18 @@ begin
                 case byte_state is
                 when WAIT_FOR_READ =>
                     if read_available = '1' then
-                        byte_state <= SKIP_ONE_READ;
-                        read_enable <= '1';
+                        byte_state <= FIRST;
                         frame_counter <= 0;
                     end if;
-                when SKIP_ONE_READ =>
-                    byte_state <= FIRST;
-                    read_enable <= '1';
                 when FIRST =>
                     TX_EN <= '1';
-                    read_enable <= '0';
-                    
+
                     byte <= read_data;
                     TX_DATA <= read_data(3 downto 0);
                     byte_state <= SECOND;
                 when SECOND =>
                     TX_EN <= '1';
-                    read_enable <= '1';
-                    
+
                     TX_DATA <= byte(7 downto 4);
                     byte_state <= FIRST;
                     case frame_state is
@@ -122,22 +117,24 @@ begin
                             end if;
                         end if;
                     when PAYLOAD =>
-                        frame_counter <= frame_counter - 1;
                         if frame_counter = 0 then
                             if has_rest = '1' then
-                                frame_counter <= (46 - payload_length - 1) * 2;
+                                frame_counter <= (45 - payload_length) + (45 - payload_length);
                                 byte_state <= REST;
                             else
                                 byte_state <= CRC;
                             end if;
+                        else
+                            frame_counter <= frame_counter - 1;
                         end if;
                     end case;
                 when REST =>
-                    frame_counter <= frame_counter - 1;
                     TX_DATA <= (others => '0');
                     if frame_counter = 0 then
                         byte_state <= CRC;
                         counter <= 0;
+                    else
+                        frame_counter <= frame_counter - 1;
                     end if;
                 when CRC =>
                     counter <= counter + 1;
@@ -147,10 +144,10 @@ begin
                     end if;
                 when IFG =>
                     TX_EN <= '0';
-                    counter <= counter - 1;
                     if counter = 0 then
                         byte_state <= WAIT_FOR_READ;
-                        counter <= 0;
+                    else
+                        counter <= counter - 1;
                     end if;
                 end case;
             end if;
